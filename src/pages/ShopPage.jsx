@@ -16,7 +16,7 @@ export default function ShopPage() {
   const queryNew = searchParams.get('new') === 'true';
   const searchQuery = searchParams.get('search') || '';
 
-  const { filterProducts } = useProducts();
+  const { filterProducts, loading } = useProducts();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [gridCols, setGridCols] = useState(4);
 
@@ -122,9 +122,13 @@ export default function ShopPage() {
                   <SlidersHorizontal size={14} />
                   Filters
                 </button>
-                <span className="text-xs md:text-sm text-gray-300 font-inter">
-                  <strong className="text-white">{filteredProducts.length}</strong> items found
-                </span>
+                {loading ? (
+                  <div className="h-4 w-24 bg-white/15 rounded animate-pulse" />
+                ) : (
+                  <span className="text-xs md:text-sm text-gray-300 font-inter">
+                    <strong className="text-white">{filteredProducts.length}</strong> items found
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -153,8 +157,30 @@ export default function ShopPage() {
               </div>
             </div>
 
-            {/* Product Grid */}
-            {filteredProducts.length > 0 ? (
+            {/* Product Grid / Skeleton Loading */}
+            {loading ? (
+              <div
+                className={`grid grid-cols-2 gap-3 md:gap-5 ${
+                  gridCols === 3
+                    ? 'sm:grid-cols-2 md:grid-cols-3'
+                    : 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                }`}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-2xl bg-[#141414] border border-white/10 p-3 flex flex-col gap-3 animate-pulse"
+                  >
+                    <div className="aspect-[3/4] w-full rounded-xl bg-[#1c1c1c]" />
+                    <div className="space-y-2 px-1">
+                      <div className="h-3 w-16 bg-white/15 rounded" />
+                      <div className="h-4 w-3/4 bg-white/10 rounded" />
+                      <div className="h-4 w-24 bg-white/20 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div
                 className={`grid grid-cols-2 gap-3 md:gap-5 ${
                   gridCols === 3

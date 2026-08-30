@@ -18,7 +18,7 @@ const colorOptions = [
 ];
 
 export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) {
-  const { categories } = useProducts();
+  const { categories, loading } = useProducts();
   const [, setSearchParams] = useSearchParams();
 
   const handleGenderChange = (gender) => {
@@ -145,38 +145,49 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
           Categories
         </h4>
         <div className="space-y-1">
-          <button
-            onClick={() => handleCategoryChange('all')}
-            className={`w-full flex items-center justify-between text-left text-xs py-2 px-3 rounded-lg transition-all ${
-              !filters.category || filters.category === 'all'
-                ? 'text-white bg-white/15 font-bold'
-                : 'text-gray-200 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            <span>All Categories</span>
-          </button>
-
-          {categories.map((cat) => {
-            const active = filters.category === cat.slug;
-            return (
+          {loading ? (
+            [1, 2, 3, 4, 5].map((idx) => (
+              <div
+                key={idx}
+                className="w-full h-8 bg-white/5 border border-white/5 rounded-lg animate-pulse"
+              />
+            ))
+          ) : (
+            <>
               <button
-                key={cat.id}
-                onClick={() => handleCategoryChange(cat.slug)}
+                onClick={() => handleCategoryChange('all')}
                 className={`w-full flex items-center justify-between text-left text-xs py-2 px-3 rounded-lg transition-all ${
-                  active
-                    ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
+                  !filters.category || filters.category === 'all'
+                    ? 'text-white bg-white/15 font-bold'
                     : 'text-gray-200 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <span>{cat.name}</span>
-                {cat.gender === 'women' && (
-                  <span className="text-[10px] text-red-300 bg-brand-red/20 px-1.5 py-0.5 rounded font-bold">
-                    Women
-                  </span>
-                )}
+                <span>All Categories</span>
               </button>
-            );
-          })}
+
+              {categories.map((cat) => {
+                const active = filters.category === cat.slug;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryChange(cat.slug)}
+                    className={`w-full flex items-center justify-between text-left text-xs py-2 px-3 rounded-lg transition-all ${
+                      active
+                        ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
+                        : 'text-gray-200 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <span>{cat.name}</span>
+                    {cat.gender === 'women' && (
+                      <span className="text-[10px] text-red-300 bg-brand-red/20 px-1.5 py-0.5 rounded font-bold">
+                        Women
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
 

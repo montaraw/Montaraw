@@ -4,9 +4,58 @@ import { ArrowRight } from 'lucide-react';
 import { useProducts } from '../../context/ProductContext';
 
 export default function CategorySection() {
-  const { categories } = useProducts();
+  const { categories, loading } = useProducts();
 
-  if (!categories || categories.length === 0) return null;
+  if (loading || !categories || categories.length === 0) {
+    return (
+      <section className="py-12 md:py-16 bg-brand-black font-inter text-white">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8">
+          {/* Skeleton Header */}
+          <div className="flex items-end justify-between mb-6 md:mb-10">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
+                <span className="text-brand-red text-xs font-bold uppercase tracking-wider">
+                  CURATED ATELIER
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium hidden sm:inline">
+                  • Curating Collections...
+                </span>
+              </div>
+              <div className="h-7 md:h-9 w-52 md:w-72 bg-white/10 rounded-lg animate-pulse" />
+            </div>
+            <div className="h-4 w-20 bg-white/10 rounded animate-pulse" />
+          </div>
+
+          {/* Mobile Skeleton: Circle Row */}
+          <div className="flex md:hidden items-center justify-between gap-3 overflow-x-auto no-scrollbar py-2">
+            {[1, 2, 3, 4, 5].map((idx) => (
+              <div key={idx} className="flex flex-col items-center shrink-0 w-20 animate-pulse">
+                <div className="w-16 h-16 rounded-full bg-[#181818] border border-white/10" />
+                <div className="w-12 h-2.5 bg-white/10 rounded mt-2" />
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Skeleton: 5 Grid Cards */}
+          <div className="hidden md:grid grid-cols-5 gap-4 lg:gap-5">
+            {[1, 2, 3, 4, 5].map((idx) => (
+              <div
+                key={idx}
+                className="aspect-[3/4] rounded-2xl bg-[#141414] border border-white/10 p-4 flex flex-col justify-between animate-pulse relative overflow-hidden"
+              >
+                <div className="w-16 h-5 rounded-full bg-white/10" />
+                <div className="space-y-2">
+                  <div className="h-4 w-3/4 bg-white/15 rounded" />
+                  <div className="h-3 w-1/2 bg-white/10 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-12 md:py-16 bg-brand-black font-inter text-white">
@@ -77,9 +126,6 @@ export default function CategorySection() {
                   <h3 className="text-base font-bold text-white uppercase leading-tight group-hover:text-brand-red transition-colors">
                     {cat.name}
                   </h3>
-                  <p className="text-xs text-gray-200 mt-1 line-clamp-1 font-medium font-mono">
-                    /shop/{cat.slug}
-                  </p>
                 </div>
               </Link>
             </motion.div>

@@ -5,13 +5,70 @@ import { useProducts } from '../../context/ProductContext';
 import { useWishlist } from '../../context/WishlistContext';
 
 export default function NewArrivals() {
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
   // Pick top 5 newest arrivals (both women dresses and men drops)
   const displayProducts = products.filter((p) => p.isNew).slice(0, 5);
 
-  if (!displayProducts.length) return null;
+  if (loading || !displayProducts.length) {
+    return (
+      <section className="py-8 md:py-16 bg-brand-black font-inter text-white">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8">
+          {/* Skeleton Header */}
+          <div className="flex items-end justify-between mb-6 md:mb-10">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
+                <span className="text-brand-red text-xs font-bold uppercase tracking-wider">
+                  FRESH ATELIER LOOKS
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium hidden sm:inline">
+                  • Syncing Latest Drops...
+                </span>
+              </div>
+              <div className="h-7 md:h-9 w-44 md:w-64 bg-white/10 rounded-lg animate-pulse" />
+            </div>
+            <div className="h-4 w-28 bg-white/10 rounded animate-pulse" />
+          </div>
+
+          {/* Mobile Skeleton: List Cards */}
+          <div className="block md:hidden space-y-3">
+            {[1, 2, 3].map((idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-3.5 p-2.5 rounded-2xl bg-[#141414] border border-white/10 animate-pulse"
+              >
+                <div className="w-18 h-20 rounded-xl bg-[#1a1a1a] shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="w-12 h-3 bg-white/15 rounded" />
+                  <div className="w-3/4 h-3.5 bg-white/10 rounded" />
+                  <div className="w-20 h-4 bg-white/15 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Skeleton: 5 Product Cards */}
+          <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[1, 2, 3, 4, 5].map((idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl bg-[#141414] border border-white/10 p-3 flex flex-col gap-3 animate-pulse"
+              >
+                <div className="aspect-[3/4] w-full rounded-xl bg-[#1c1c1c]" />
+                <div className="space-y-2 px-1">
+                  <div className="h-3 w-16 bg-white/15 rounded" />
+                  <div className="h-4 w-3/4 bg-white/10 rounded" />
+                  <div className="h-4 w-24 bg-white/20 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-8 md:py-16 bg-brand-black font-inter text-white">
