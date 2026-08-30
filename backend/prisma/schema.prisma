@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum Gender {
+  women
+  men
+  unisex
+}
+
+enum OrderStatus {
+  Processing
+  Shipped
+  Delivered
+  Cancelled
+}
+
+model User {
+  id             String         @id @default(cuid())
+  fullName       String
+  email          String         @unique
+  password       String
+  phone          String?
+  address        String?
+  city           String?
+  state          String?        @default("Maharashtra")
+  pincode        String?
+  role           Role           @default(CUSTOMER)
+  orders         Order[]
+  recentSearches RecentSearch[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  image     String
+  gender    Gender    @default(unisex)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  name          String
+  slug          String      @unique
+  gender        Gender      @default(women)
+  categorySlug  String
+  category      Category    @relation(fields: [categorySlug], references: [slug], onDelete: Cascade)
+  price         Float
+  originalPrice Float?
+  description   String?
+  fabric        String?     @default("100% Bio-Washed Combed Cotton (240 GSM)")
+  fit           String?     @default("Relaxed Fit")
+  image         String
+  images        String[]    @default([])
+  sizes         String[]    @default(["XS", "S", "M", "L", "XL"])
+  colors        String[]    @default(["#000000"])
+  colorNames    String[]    @default(["Noir Black"])
+  isNew         Boolean     @default(true)
+  isSale        Boolean     @default(false)
+  rating        Float       @default(4.8)
+  reviews       Int         @default(12)
+  stock         Int         @default(50)
+  orderItems    OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Banner {
+  id         String   @id @default(cuid())
+  title      String
+  subtitle   String?
+  headline   String
+  buttonText String   @default("Explore Collection")
+  link       String   @default("/shop")
+  image      String
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Order {
+  id             String      @id // e.g. "MTR-88421"
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  address        String
+  city           String
+  state          String
+  pincode        String
+  subtotal       Float
+  discount       Float       @default(0)
+  couponCode     String?
+  shipping       Float       @default(0)
+  total          Float
+  paymentMethod  String      @default("UPI / Online")
+  status         OrderStatus @default(Processing)
+  trackingNumber String?
+  items          OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  size      String
+  color     String?
+  colorName String?
+  price     Float
+  quantity  Int      @default(1)
+  image     String
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  discount  Float
+  type      String   @default("percentage") // "percentage" | "fixed"
+  minOrder  Float    @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  id           String   @id @default("singleton")
+  brandName    String   @default("MONTARAW")
+  tagline      String   @default("Born Raw. Stay Raw.")
+  contactEmail String   @default("montarawsupport@gmail.com")
+  contactPhone String   @default("+91 62064 24372")
+  instagram    String   @default("@montaraw.atelier")
+  updatedAt    DateTime @updatedAt
+}
+
+model RecentSearch {
+  id        String   @id @default(cuid())
+  query     String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
