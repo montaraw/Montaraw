@@ -1,13 +1,13 @@
 import { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { defaultSettings } from '../data/seedData';
+import { defaultSettings, defaultBanners } from '../data/seedData';
 
 const ProductContext = createContext(null);
 
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [banners, setBanners] = useState([]);
+  const [banners, setBanners] = useState(defaultBanners);
   const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(true);
 
