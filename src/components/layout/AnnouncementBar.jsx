@@ -7,7 +7,7 @@ const messages = [
   'PREMIUM QUALITY GUARANTEED',
 ];
 
-export default function AnnouncementBar({ isScrolled = false }) {
+export default function AnnouncementBar() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -23,15 +23,9 @@ export default function AnnouncementBar({ isScrolled = false }) {
   }, []);
 
   return (
-    <div
-      className={`bg-brand-red text-white text-center px-4 relative z-50 overflow-hidden transition-all duration-300 ease-in-out ${
-        isScrolled
-          ? 'max-h-0 py-0 opacity-0 -translate-y-full pointer-events-none'
-          : 'max-h-12 py-2 opacity-100 translate-y-0'
-      }`}
-    >
+    <div className="bg-brand-red text-white text-center px-4 py-2 relative z-40 overflow-hidden">
       <p
-        className={`text-[11px] md:text-xs font-inter uppercase transition-all duration-300 ${
+        className={`text-[11px] md:text-xs font-inter uppercase font-semibold tracking-wide transition-all duration-300 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
         }`}
       >

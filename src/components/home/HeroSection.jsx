@@ -87,8 +87,8 @@ export default function HeroSection() {
                   </span>
                 </div>
 
-                {/* Main Headline (+2px) */}
-                <h1 className="text-[34px] sm:text-[54px] md:text-[66px] lg:text-[72px] font-black text-white uppercase leading-[1.05] mb-4 tracking-normal">
+                {/* Main Headline (Enhanced for Phone & Desktop) */}
+                <h1 className="text-[40px] sm:text-[54px] md:text-[66px] lg:text-[72px] font-black text-white uppercase leading-[1.02] sm:leading-[1.05] mb-3.5 sm:mb-4 tracking-normal">
                   {banner.headline.split(' ').map((word, i) => (
                     <span key={i} className="block">
                       {word}
@@ -101,38 +101,38 @@ export default function HeroSection() {
                   {banner.subtitle}
                 </p>
 
-                {/* Modern CTA Action Buttons (+2px) */}
-                <div className="flex flex-wrap items-center gap-3.5 mb-4 pb-4">
+                {/* Modern CTA Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 mb-5 pb-2">
                   <Link
                     to={banner.link || '/shop'}
-                    className="btn-primary py-4 px-8 text-[14px] font-black uppercase rounded-xl inline-flex items-center gap-2.5 group shadow-2xl hover:scale-105 transition-all"
+                    className="btn-primary py-3 sm:py-4 px-5 sm:px-8 text-xs sm:text-[14px] font-black uppercase rounded-xl inline-flex items-center gap-2 group shadow-2xl hover:scale-105 transition-all"
                   >
                     <span>EXPLORE COLLECTION</span>
-                    <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
 
                   <Link
                     to="/shop?new=true"
-                    className="px-7 py-4 rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 hover:border-white text-white text-[14px] font-black uppercase backdrop-blur-md transition-all shadow-xl inline-flex items-center gap-2"
+                    className="px-4 sm:px-7 py-3 sm:py-4 rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 hover:border-white text-white text-xs sm:text-[14px] font-black uppercase backdrop-blur-md transition-all shadow-xl inline-flex items-center gap-2"
                   >
-                    <Sparkles size={15} className="text-brand-red" />
+                    <Sparkles size={14} className="text-brand-red" />
                     <span>NEW ARRIVALS '25</span>
                   </Link>
                 </div>
 
-                {/* Key Metrics (+2px) */}
-                <div className="flex items-center gap-6 md:gap-10 pt-8 md:pt-4 border-t border-white/20">
-                  <div>
-                    <p className="text-[20px] md:text-[24px] font-black text-white">240+ GSM</p>
-                    <p className="text-[13px] font-bold text-gray-200 uppercase mt-0.5">Heavyweight Cotton</p>
+                {/* Key Metrics - Mobile Optimized 3-Column Glass Strip */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 pt-5 sm:pt-6 border-t border-white/20 max-w-xl">
+                  <div className="p-2.5 sm:p-0 rounded-xl bg-black/40 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/15 sm:border-0 text-center sm:text-left shadow-sm sm:shadow-none">
+                    <p className="text-xs sm:text-lg md:text-[22px] font-black text-white">100% COTTON</p>
+                    <p className="text-[10px] sm:text-xs font-bold text-gray-300 uppercase mt-0.5 leading-tight">Bio-Washed</p>
                   </div>
-                  <div>
-                    <p className="text-[20px] md:text-[24px] font-black text-white">100% RAW</p>
-                    <p className="text-[13px] font-bold text-gray-200 uppercase mt-0.5">Single-Brand Signature</p>
+                  <div className="p-2.5 sm:p-0 rounded-xl bg-black/40 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/15 sm:border-0 text-center sm:text-left shadow-sm sm:shadow-none">
+                    <p className="text-xs sm:text-lg md:text-2xl font-black text-white ">PRE-SHRUNK</p>
+                    <p className="text-[10px] sm:text-xs font-bold text-gray-300 uppercase mt-0.5 leading-tight">Heavy Weave</p>
                   </div>
-                  <div>
-                    <p className="text-[20px] md:text-[24px] font-black text-white">4.9 ★</p>
-                    <p className="text-[13px] font-bold text-gray-200 uppercase mt-0.5">Customer Loved</p>
+                  <div className="p-2.5 sm:p-0 rounded-xl bg-black/40 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/15 sm:border-0 text-center sm:text-left shadow-sm sm:shadow-none">
+                    <p className="text-xs sm:text-lg md:text-2xl font-black text-white ">4.9 ★</p>
+                    <p className="text-[10px] sm:text-xs font-bold text-gray-300 uppercase mt-0.5 leading-tight">Top Rated</p>
                   </div>
                 </div>
               </motion.div>

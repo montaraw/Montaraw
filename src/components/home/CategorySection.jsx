@@ -58,7 +58,7 @@ export default function CategorySection() {
   }
 
   return (
-    <section className="py-12 md:py-16 bg-brand-black font-inter text-white">
+    <section className="pt-8 md:py-16 bg-brand-black font-inter text-white">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8">
         {/* Header */}
         <div className="flex items-end justify-between mb-6 md:mb-10">
@@ -80,7 +80,7 @@ export default function CategorySection() {
         </div>
 
         {/* Mobile View: Circular Avatar Bubble Row */}
-        <div className="flex md:hidden items-center justify-between gap-3 overflow-x-auto no-scrollbar py-2">
+        <div className="flex md:hidden items-center justify-start gap-4 overflow-x-auto no-scrollbar py-2">
           {categories.map((cat) => (
             <Link key={cat.id || cat.slug} to={`/shop/${cat.slug}`} className="flex flex-col items-center shrink-0 w-20">
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-[#181818] shadow-md hover:border-brand-red transition-all">

@@ -13,26 +13,69 @@ export default function TrackOrderPage() {
   const [searchedOrder, setSearchedOrder] = useState(null);
   const [searched, setSearched] = useState(false);
 
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
-    if (initialId) {
+    async function initTrack() {
+      if (!initialId) return;
       const found = getOrderById(initialId);
-      setSearchedOrder(found);
-      setSearched(true);
+      if (found) {
+        setSearchedOrder(found);
+        setSearched(true);
+      } else {
+        try {
+          setIsSearching(true);
+          const res = await api.trackOrder(initialId);
+          if (res && res.order) {
+            setSearchedOrder(res.order);
+          }
+        } catch {
+          // ignore
+        } finally {
+          setIsSearching(false);
+          setSearched(true);
+        }
+      }
     }
+    initTrack();
   }, [initialId, getOrderById]);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return;
 
-    const byId = getOrderById(query);
+    setIsSearching(true);
+    const byId = getOrderById(cleanQuery);
     if (byId) {
       setSearchedOrder(byId);
-    } else {
-      const byContact = getOrdersByContact(query);
-      setSearchedOrder(byContact.length > 0 ? byContact[0] : null);
+      setSearched(true);
+      setIsSearching(false);
+      return;
     }
-    setSearched(true);
+
+    const byContact = getOrdersByContact(cleanQuery);
+    if (byContact.length > 0) {
+      setSearchedOrder(byContact[0]);
+      setSearched(true);
+      setIsSearching(false);
+      return;
+    }
+
+    // Try backend live lookup
+    try {
+      const res = await api.trackOrder(cleanQuery);
+      if (res && res.order) {
+        setSearchedOrder(res.order);
+      } else {
+        setSearchedOrder(null);
+      }
+    } catch {
+      setSearchedOrder(null);
+    } finally {
+      setSearched(true);
+      setIsSearching(false);
+    }
   };
 
   const getStepIndex = (status) => {
@@ -238,9 +281,9 @@ export default function TrackOrderPage() {
                 <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">
                   Delivery Destination
                 </span>
-                <p className="text-white font-bold">{searchedOrder.customer?.fullName}</p>
-                <p className="text-gray-200 text-xs">{searchedOrder.customer?.address}</p>
-                <p className="text-gray-200 text-xs">{searchedOrder.customer?.city}, {searchedOrder.customer?.state} - {searchedOrder.customer?.pincode}</p>
+                <p className="text-white font-bold">{searchedOrder.customer?.fullName || searchedOrder.customerName || 'Customer'}</p>
+                <p className="text-gray-200 text-xs">{searchedOrder.customer?.address || searchedOrder.address}</p>
+                <p className="text-gray-200 text-xs">{searchedOrder.customer?.city || searchedOrder.city || 'Mumbai'}, {searchedOrder.customer?.state || searchedOrder.state || 'Maharashtra'} - {searchedOrder.customer?.pincode || searchedOrder.pincode}</p>
               </div>
 
               <div className="p-3.5 bg-[#181818] border border-white/15 rounded-2xl space-y-1">

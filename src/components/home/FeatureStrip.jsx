@@ -2,7 +2,7 @@ import { Shield, Truck, RotateCcw, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const features = [
-  { icon: Shield, title: 'Premium Quality', desc: '240+ GSM fabrics' },
+  { icon: Shield, title: 'Premium Fabric', desc: '100% Bio-Washed Cotton' },
   { icon: Truck, title: 'Fast Delivery', desc: '3-5 business days' },
   { icon: RotateCcw, title: 'Easy Returns', desc: '7-day return policy' },
   { icon: Lock, title: 'Secure Payment', desc: '100% protected' },

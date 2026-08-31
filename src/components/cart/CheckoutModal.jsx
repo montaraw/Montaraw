@@ -62,18 +62,19 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
     }
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setIsProcessing(true);
 
-    setTimeout(() => {
+    try {
       const orderData = {
         customer: { ...formData },
         items: cart.map((item) => ({
-          id: item.id,
+          id: item.id || item.productId,
+          productId: item.id || item.productId,
           name: item.name,
-          size: item.selectedSize,
-          color: item.selectedColor,
-          colorName: item.selectedColorName || item.colorNames?.[0] || 'Standard',
+          size: item.selectedSize || item.size || 'M',
+          color: item.selectedColor || item.color || '#000000',
+          colorName: item.selectedColorName || item.colorName || item.colorNames?.[0] || 'Standard',
           price: item.price,
           quantity: item.quantity,
           image: item.image,
@@ -86,12 +87,17 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
         paymentMethod,
       };
 
-      const placedOrder = createOrder(orderData);
+      const placedOrder = await createOrder(orderData);
       clearCart();
       setIsProcessing(false);
       onClose();
-      onOrderSuccess(placedOrder);
-    }, 1200);
+      if (placedOrder && onOrderSuccess) {
+        onOrderSuccess(placedOrder);
+      }
+    } catch (err) {
+      console.error('[CheckoutModal] Order creation error:', err);
+      setIsProcessing(false);
+    }
   };
 
   return (

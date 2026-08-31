@@ -118,7 +118,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/shop/oversized-tshirts" className="hover:text-white transition-colors">
-                  240 GSM Oversized T-Shirts
+                  Pure Cotton Oversized Tees
                 </Link>
               </li>
               <li>
@@ -199,7 +199,7 @@ export default function Footer() {
       {/* Bottom Legal Bar */}
       <div className="border-t border-white/10 py-6 bg-black">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-300">
-          <p>© 2025 {settings.brandName || 'MONTARAW'}. Crafted for the bold. All rights reserved.</p>
+          <p>© 2026 {settings.brandName || 'MONTARAW'}. Crafted for the bold. All rights reserved.</p>
           <div className="flex items-center gap-6 text-[11px] text-gray-300">
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Atelier</Link>

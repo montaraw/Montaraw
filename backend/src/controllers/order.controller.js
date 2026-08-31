@@ -29,14 +29,43 @@ export const createOrder = async (req, res, next) => {
     const orderId = `MTR-${randomNum}`;
 
     // Check if customer is registered
-    const existingUser = await prisma.user.findUnique({
-      where: { email: customerEmail.trim().toLowerCase() },
-    });
+    let validUserId = null;
+    try {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: customerEmail.trim().toLowerCase() },
+      });
+      if (existingUser) {
+        validUserId = existingUser.id;
+      } else if (req.user?.id) {
+        const checkUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (checkUser) validUserId = checkUser.id;
+      }
+    } catch {
+      validUserId = null;
+    }
+
+    // Verify which product IDs actually exist in PostgreSQL to prevent foreign key violation
+    const productCandidateIds = (items || [])
+      .map((item) => item.id || item.productId)
+      .filter(Boolean);
+
+    let validProductIdSet = new Set();
+    try {
+      if (productCandidateIds.length > 0) {
+        const existingProducts = await prisma.product.findMany({
+          where: { id: { in: productCandidateIds } },
+          select: { id: true },
+        });
+        validProductIdSet = new Set(existingProducts.map((p) => p.id));
+      }
+    } catch {
+      validProductIdSet = new Set();
+    }
 
     const order = await prisma.order.create({
       data: {
         id: orderId,
-        userId: existingUser ? existingUser.id : (req.user ? req.user.id : null),
+        userId: validUserId,
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim().toLowerCase(),
         customerPhone: customerPhone.trim(),
@@ -44,24 +73,29 @@ export const createOrder = async (req, res, next) => {
         city: city ? city.trim() : 'Mumbai',
         state: state ? state.trim() : 'Maharashtra',
         pincode: pincode ? pincode.trim() : '400001',
-        subtotal: parseFloat(subtotal),
+        subtotal: parseFloat(subtotal) || 0,
         discount: discount ? parseFloat(discount) : 0,
         couponCode: couponCode || null,
         shipping: shipping ? parseFloat(shipping) : 0,
-        total: parseFloat(total),
+        total: parseFloat(total) || 0,
         paymentMethod: paymentMethod || 'UPI / Online',
         status: 'Processing',
         items: {
-          create: items.map((item) => ({
-            productId: item.id || item.productId || null,
-            name: item.name,
-            size: item.size || 'M',
-            color: item.color || '#000000',
-            colorName: item.colorName || 'Noir Black',
-            price: parseFloat(item.price),
-            quantity: parseInt(item.quantity) || 1,
-            image: item.image,
-          })),
+          create: items.map((item) => {
+            const rawId = item.id || item.productId || null;
+            const validProductId = rawId && validProductIdSet.has(rawId) ? rawId : null;
+
+            return {
+              productId: validProductId,
+              name: item.name || 'Garment Item',
+              size: item.size || 'M',
+              color: item.color || '#000000',
+              colorName: item.colorName || 'Noir Black',
+              price: parseFloat(item.price) || 0,
+              quantity: parseInt(item.quantity) || 1,
+              image: item.image || '',
+            };
+          }),
         },
       },
       include: {

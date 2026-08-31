@@ -52,7 +52,7 @@ export default function OrderSuccessModal({ order, onClose }) {
 
             <div className="flex justify-between items-center text-xs">
               <span className="text-white/60">Shipping Destination:</span>
-              <span className="text-white truncate max-w-[200px]">{order.customer?.city}, {order.customer?.pincode}</span>
+              <span className="text-white truncate max-w-[200px]">{order.customer?.city || order.city || 'Mumbai'}, {order.customer?.pincode || order.pincode || ''}</span>
             </div>
 
             <div className="pt-2 border-t border-white/10 flex justify-between items-center font-bold text-sm">

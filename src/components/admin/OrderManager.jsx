@@ -8,6 +8,15 @@ export default function OrderManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [trackingInput, setTrackingInput] = useState('');
+  const [trackingSaved, setTrackingSaved] = useState(false);
+
+  // Sync tracking input when selectedOrder changes
+  const handleOpenSlip = (order) => {
+    setSelectedOrder(order);
+    setTrackingInput(order.trackingNumber || '');
+    setTrackingSaved(false);
+  };
 
   const filteredOrders = orders.filter((order) => {
     const matchesStatus = statusFilter === 'all' || order.status?.toLowerCase() === statusFilter.toLowerCase();
@@ -15,9 +24,9 @@ export default function OrderManager() {
     const matchesSearch =
       !q ||
       order.id.toLowerCase().includes(q) ||
-      order.customer?.fullName?.toLowerCase().includes(q) ||
-      order.customer?.phone?.includes(q) ||
-      order.customer?.city?.toLowerCase().includes(q);
+      (order.customer?.fullName || order.customerName || '').toLowerCase().includes(q) ||
+      (order.customer?.phone || order.customerPhone || '').includes(q) ||
+      (order.customer?.city || order.city || '').toLowerCase().includes(q);
     return matchesStatus && matchesSearch;
   });
 
@@ -25,6 +34,8 @@ export default function OrderManager() {
     switch (status?.toLowerCase()) {
       case 'delivered':
         return 'bg-green-500/20 text-green-300 border-green-500/40';
+      case 'out for delivery':
+        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
       case 'shipped':
         return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
       case 'processing':
@@ -109,9 +120,9 @@ export default function OrderManager() {
                       </span>
                     </td>
                     <td className="py-4 px-5">
-                      <p className="font-bold text-white text-sm">{order.customer?.fullName}</p>
-                      <p className="text-gray-300 text-xs mt-0.5">{order.customer?.phone}</p>
-                      <p className="text-gray-400 text-[11px]">{order.customer?.city}, {order.customer?.state}</p>
+                      <p className="font-bold text-white text-sm">{order.customer?.fullName || order.customerName || 'Customer'}</p>
+                      <p className="text-gray-300 text-xs mt-0.5">{order.customer?.phone || order.customerPhone}</p>
+                      <p className="text-gray-400 text-[11px]">{order.customer?.city || order.city || 'Mumbai'}, {order.customer?.state || order.state || 'Maharashtra'}</p>
                     </td>
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-2">
@@ -136,13 +147,14 @@ export default function OrderManager() {
                       >
                         <option value="Processing" className="bg-black text-white">Processing</option>
                         <option value="Shipped" className="bg-black text-white">Shipped</option>
+                        <option value="Out for Delivery" className="bg-black text-white">Out for Delivery</option>
                         <option value="Delivered" className="bg-black text-white">Delivered</option>
                         <option value="Cancelled" className="bg-black text-white">Cancelled</option>
                       </select>
                     </td>
                     <td className="py-4 px-5 text-right">
                       <button
-                        onClick={() => setSelectedOrder(order)}
+                        onClick={() => handleOpenSlip(order)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 text-xs font-bold uppercase transition-all shadow-md"
                       >
                         <Eye size={13} />
@@ -170,14 +182,15 @@ export default function OrderManager() {
                   >
                     <option value="Processing" className="bg-black text-white">Processing</option>
                     <option value="Shipped" className="bg-black text-white">Shipped</option>
+                    <option value="Out for Delivery" className="bg-black text-white">Out for Delivery</option>
                     <option value="Delivered" className="bg-black text-white">Delivered</option>
                     <option value="Cancelled" className="bg-black text-white">Cancelled</option>
                   </select>
                 </div>
 
                 <div>
-                  <p className="font-bold text-white text-sm">{order.customer?.fullName}</p>
-                  <p className="text-gray-300 text-xs">{order.customer?.phone} • {order.customer?.city}</p>
+                  <p className="font-bold text-white text-sm">{order.customer?.fullName || order.customerName || 'Customer'}</p>
+                  <p className="text-gray-300 text-xs">{(order.customer?.phone || order.customerPhone)} • {(order.customer?.city || order.city || 'Mumbai')}</p>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-white/10 text-xs">
@@ -186,7 +199,7 @@ export default function OrderManager() {
                     <span className="font-black text-white text-sm">₹{order.total?.toLocaleString()}</span>
                   </div>
                   <button
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => handleOpenSlip(order)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-black text-xs font-bold uppercase transition-all shadow-md"
                   >
                     <Eye size={13} />
@@ -230,16 +243,84 @@ export default function OrderManager() {
                 </button>
               </div>
 
+              {/* Live Dispatch & Tracking Controls for Admin */}
+              <div className="p-4 bg-[#181818] border border-brand-red/30 rounded-2xl space-y-3 text-xs shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-brand-red uppercase tracking-wider">
+                    Live Dispatch & Courier Controls:
+                  </span>
+                  {trackingSaved && (
+                    <span className="text-[10px] font-bold text-green-400 uppercase flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Updated Live
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-300 uppercase mb-1">
+                      Update Live Status
+                    </label>
+                    <select
+                      value={selectedOrder.status}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        updateOrderStatus(selectedOrder.id, newStatus, selectedOrder.trackingNumber);
+                        setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
+                        setTrackingSaved(true);
+                        setTimeout(() => setTrackingSaved(false), 2000);
+                      }}
+                      className={`w-full text-xs font-bold uppercase px-3 py-2.5 rounded-xl border focus:outline-none cursor-pointer ${getStatusBadge(
+                        selectedOrder.status
+                      )}`}
+                    >
+                      <option value="Processing" className="bg-black text-white">Processing</option>
+                      <option value="Shipped" className="bg-black text-white">Shipped</option>
+                      <option value="Out for Delivery" className="bg-black text-white">Out for Delivery</option>
+                      <option value="Delivered" className="bg-black text-white">Delivered</option>
+                      <option value="Cancelled" className="bg-black text-white">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-300 uppercase mb-1">
+                      Courier AWB / Tracking No.
+                    </label>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="e.g. DELHIVERY-98124"
+                        value={trackingInput}
+                        onChange={(e) => setTrackingInput(e.target.value)}
+                        className="flex-1 bg-[#121212] border border-white/20 text-white placeholder-gray-500 text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-brand-red font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateOrderStatus(selectedOrder.id, selectedOrder.status, trackingInput.trim());
+                          setSelectedOrder((prev) => ({ ...prev, trackingNumber: trackingInput.trim() }));
+                          setTrackingSaved(true);
+                          setTimeout(() => setTrackingSaved(false), 2000);
+                        }}
+                        className="px-3.5 py-2 bg-white text-black hover:bg-gray-200 text-[10px] font-bold uppercase rounded-xl transition-all shadow-md shrink-0"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Customer Delivery Card */}
               <div className="p-4 bg-[#181818] border border-white/15 rounded-2xl text-xs space-y-1">
                 <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">
                   Recipient Information:
                 </span>
-                <p className="text-white font-bold text-sm">{selectedOrder.customer?.fullName}</p>
-                <p className="text-gray-200">{selectedOrder.customer?.address}</p>
-                <p className="text-gray-200">{selectedOrder.customer?.city}, {selectedOrder.customer?.state} - {selectedOrder.customer?.pincode}</p>
-                <p className="text-gray-300 pt-1">Phone: <strong className="text-white">{selectedOrder.customer?.phone}</strong></p>
-                <p className="text-gray-300">Email: <strong className="text-white">{selectedOrder.customer?.email}</strong></p>
+                <p className="text-white font-bold text-sm">{selectedOrder.customer?.fullName || selectedOrder.customerName || 'Customer'}</p>
+                <p className="text-gray-200">{selectedOrder.customer?.address || selectedOrder.address}</p>
+                <p className="text-gray-200">{selectedOrder.customer?.city || selectedOrder.city || 'Mumbai'}, {selectedOrder.customer?.state || selectedOrder.state || 'Maharashtra'} - {selectedOrder.customer?.pincode || selectedOrder.pincode}</p>
+                <p className="text-gray-300 pt-1">Phone: <strong className="text-white">{selectedOrder.customer?.phone || selectedOrder.customerPhone}</strong></p>
+                <p className="text-gray-300">Email: <strong className="text-white">{selectedOrder.customer?.email || selectedOrder.customerEmail}</strong></p>
               </div>
 
               {/* Items List */}

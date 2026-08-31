@@ -31,9 +31,11 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-black text-white font-inter">
-      {/* Fixed/Sticky Clean Top Header Container */}
-      <header className="sticky top-0 left-0 right-0 z-50 transition-all duration-300">
-        <AnnouncementBar isScrolled={isScrolled} />
+      {/* Top Announcement Bar (scrolls away naturally) */}
+      <AnnouncementBar />
+
+      {/* Sticky Header with Navbar pinned at top-0 */}
+      <header className="sticky top-0 left-0 right-0 z-50">
         <Navbar isScrolled={isScrolled} />
       </header>
       <main className="flex-1">{children}</main>

@@ -37,9 +37,9 @@ export default function ProductCard({ product, index = 0 }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.35, delay: index * 0.04 }}
-      className="group font-inter"
+      className="group font-inter w-full min-w-0"
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${product.id}`} className="block w-full min-w-0">
         {/* Image Container */}
         <div className="relative aspect-[3/4] bg-[#141414] rounded-2xl overflow-hidden mb-3 border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-lg">
           <img
