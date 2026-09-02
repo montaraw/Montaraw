@@ -70,22 +70,48 @@ export default function SettingsManager() {
           />
         </div>
 
-        <div>
-          <label className="block font-bold text-white uppercase mb-1.5">Customer Support Helpline</label>
-          <input
-            value={form.contactPhone || ''}
-            onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
-            className="w-full bg-[#181818] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block font-bold text-white uppercase mb-1.5">Primary Helpline</label>
+            <input
+              value={form.contactPhone || ''}
+              onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
+              placeholder="+91 97205 38576"
+              className="w-full bg-[#181818] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-white uppercase mb-1.5">Secondary Helpline</label>
+            <input
+              value={form.contactPhoneSecondary || ''}
+              onChange={(e) => setForm({ ...form, contactPhoneSecondary: e.target.value })}
+              placeholder="+91 62064 24372"
+              className="w-full bg-[#181818] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block font-bold text-white uppercase mb-1.5">Instagram Handle</label>
-          <input
-            value={form.instagram || ''}
-            onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-            className="w-full bg-[#181818] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block font-bold text-white uppercase mb-1.5">Official Instagram URL</label>
+            <input
+              value={form.instagram || ''}
+              onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+              placeholder="https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1"
+              className="w-full bg-[#181818] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-white uppercase mb-1.5">Official Facebook URL</label>
+            <input
+              value={form.facebook || ''}
+              onChange={(e) => setForm({ ...form, facebook: e.target.value })}
+              placeholder="https://www.facebook.com/share/17Vh8emhBD/"
+              className="w-full bg-[#181818] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { SlidersHorizontal, Grid3X3, LayoutGrid } from 'lucide-react';
+import { SlidersHorizontal, Grid3X3, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/ui/ProductCard';
 import FilterSidebar from '../components/shop/FilterSidebar';
 import SortDropdown from '../components/shop/SortDropdown';
 import { useProducts } from '../context/ProductContext';
+
+const ITEMS_PER_PAGE = 8;
 
 export default function ShopPage() {
   const { category: urlCategory } = useParams();
@@ -19,6 +21,7 @@ export default function ShopPage() {
   const { filterProducts, loading } = useProducts();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [gridCols, setGridCols] = useState(4);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [filters, setFilters] = useState({
     gender: queryGender,
@@ -33,7 +36,7 @@ export default function ShopPage() {
     search: searchQuery,
   });
 
-  // Sync state when URL params change
+  // Sync state when URL params change & reset pagination
   useEffect(() => {
     setFilters((prev) => ({
       ...prev,
@@ -43,24 +46,35 @@ export default function ShopPage() {
       isNew: searchParams.get('new') === 'true',
       search: searchParams.get('search') || '',
     }));
+    setCurrentPage(1);
   }, [urlCategory, searchParams]);
 
   const filteredProducts = useMemo(() => filterProducts(filters), [filterProducts, filters]);
+
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 180, behavior: 'smooth' });
+    }
+  };
 
   // Clean, minimal title determination
   const pageTitle = useMemo(() => {
     if (searchQuery) return `SEARCH: "${searchQuery}"`;
     if (filters.isSale) return 'SALE & ARCHIVE';
     if (filters.isNew) return 'NEW ARRIVALS';
-    if (urlCategory === 'dresses' || filters.category === 'dresses') return 'DRESSES & GOWNS';
-    if (urlCategory === 'oversized-tshirts' || filters.category === 'oversized-tshirts') return 'OVERSIZED T-SHIRTS';
-    if (urlCategory === 'hoodies' || filters.category === 'hoodies') return 'HOODIES & SWEATSHIRTS';
-    if (urlCategory === 'graphic-tees' || filters.category === 'graphic-tees') return 'GRAPHIC TEES';
-    if (urlCategory === 'co-ords' || filters.category === 'co-ords') return 'CO-ORD SETS';
-    if (urlCategory === 'bottoms' || filters.category === 'bottoms') return 'BOTTOMS & CARGOS';
-    if (urlCategory === 'accessories' || filters.category === 'accessories') return 'ACCESSORIES';
-    if (filters.gender === 'women') return 'WOMEN COLLECTION';
-    if (filters.gender === 'men') return 'MEN COLLECTION';
+    if (urlCategory === 'pakistani-suits' || filters.category === 'pakistani-suits') return 'PAKISTANI SUITS';
+    if (urlCategory === 'suits' || filters.category === 'suits') return 'SUITS & ANARKALIS';
+    if (urlCategory === 'cord-set' || filters.category === 'cord-set') return 'CORD SET';
+    if (filters.gender === 'women') return "WOMEN COLLECTION";
+    if (filters.gender === 'men') return "MEN COLLECTION";
     if (urlCategory && urlCategory !== 'all') return urlCategory.replace(/-/g, ' ').toUpperCase();
     return 'ALL PRODUCTS';
   }, [filters, urlCategory, searchQuery]);
@@ -94,7 +108,7 @@ export default function ShopPage() {
               {pageTitle}
             </h1>
             <p className="text-xs sm:text-sm text-gray-300 font-inter mt-1">
-              Showing <strong className="text-white">{filteredProducts.length}</strong> piece{filteredProducts.length !== 1 ? 's' : ''}
+              Showing <strong className="text-white">{filteredProducts.length}</strong> garment piece{filteredProducts.length !== 1 ? 's' : ''} {totalPages > 1 && `(Page ${currentPage} of ${totalPages})`}
             </p>
           </div>
         </div>
@@ -104,7 +118,10 @@ export default function ShopPage() {
           {/* Sidebar Filters */}
           <FilterSidebar
             filters={filters}
-            setFilters={setFilters}
+            setFilters={(updater) => {
+              setFilters(updater);
+              setCurrentPage(1);
+            }}
             isOpen={filtersOpen}
             onClose={() => setFiltersOpen(false)}
           />
@@ -126,7 +143,7 @@ export default function ShopPage() {
                   <div className="h-4 w-24 bg-white/15 rounded animate-pulse" />
                 ) : (
                   <span className="text-xs md:text-sm text-gray-300 font-inter">
-                    <strong className="text-white">{filteredProducts.length}</strong> items found
+                    <strong className="text-white">{filteredProducts.length}</strong> items available
                   </span>
                 )}
               </div>
@@ -152,7 +169,10 @@ export default function ShopPage() {
 
                 <SortDropdown
                   value={filters.sortBy}
-                  onChange={(val) => setFilters((prev) => ({ ...prev, sortBy: val }))}
+                  onChange={(val) => {
+                    setFilters((prev) => ({ ...prev, sortBy: val }));
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
             </div>
@@ -180,18 +200,73 @@ export default function ShopPage() {
                   </div>
                 ))}
               </div>
-            ) : filteredProducts.length > 0 ? (
-              <div
-                className={`grid grid-cols-2 gap-3 md:gap-5 ${
-                  gridCols === 3
-                    ? 'sm:grid-cols-2 md:grid-cols-3'
-                    : 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-                }`}
-              >
-                {filteredProducts.map((product, i) => (
-                  <ProductCard key={product.id} product={product} index={i} />
-                ))}
-              </div>
+            ) : paginatedProducts.length > 0 ? (
+              <>
+                <div
+                  className={`grid grid-cols-2 gap-3 md:gap-5 ${
+                    gridCols === 3
+                      ? 'sm:grid-cols-2 md:grid-cols-3'
+                      : 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                  }`}
+                >
+                  {paginatedProducts.map((product, i) => (
+                    <ProductCard key={product.id} product={product} index={i} />
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="mt-12 pt-6 border-t border-white/15 flex flex-wrap items-center justify-between gap-4">
+                    <span className="text-xs text-gray-300 font-medium">
+                      Page <strong className="text-white">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong> ({filteredProducts.length} items)
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`p-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 ${
+                          currentPage === 1
+                            ? 'opacity-40 border-white/10 text-gray-500 cursor-not-allowed'
+                            : 'border-white/20 hover:border-white text-white hover:bg-white/10'
+                        }`}
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft size={16} />
+                        <span className="hidden sm:inline">Prev</span>
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
+                            currentPage === pageNum
+                              ? 'bg-brand-red text-white shadow-lg'
+                              : 'border border-white/15 text-gray-300 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`p-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 ${
+                          currentPage === totalPages
+                            ? 'opacity-40 border-white/10 text-gray-500 cursor-not-allowed'
+                            : 'border-white/20 hover:border-white text-white hover:bg-white/10'
+                        }`}
+                        aria-label="Next page"
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-20 px-4 bg-[#121212] border border-white/15 rounded-2xl">
                 <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
@@ -218,6 +293,7 @@ export default function ShopPage() {
                       search: '',
                     });
                     setSearchParams(new URLSearchParams());
+                    setCurrentPage(1);
                   }}
                   className="btn-primary py-2.5 px-6 text-xs font-bold uppercase rounded-xl"
                 >

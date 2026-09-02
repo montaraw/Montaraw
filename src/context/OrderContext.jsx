@@ -53,7 +53,10 @@ export function OrderProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.map(normalizeOrder);
+          const clean = parsed.filter(
+            (o) => !['MTR-88421', 'MTR-88410', 'MTR-91024', 'MTR-76192', 'MTR-55410'].includes(o.id)
+          );
+          return clean.map(normalizeOrder);
         }
       }
     } catch {

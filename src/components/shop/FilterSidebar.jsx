@@ -1,45 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { X, SlidersHorizontal, Sparkles, Flame, Check } from 'lucide-react';
+import { X, SlidersHorizontal, Sparkles, Flame, Check, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '../../context/ProductContext';
 
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '30', '32', '34', '36', 'One Size'];
 
-const colorOptions = [
-  { name: 'Noir Black', value: '#000000' },
-  { name: 'Off White', value: '#f5f5f5' },
-  { name: 'Charcoal', value: '#2d2d2d' },
-  { name: 'Wine / Burgundy', value: '#3b1424' },
-  { name: 'Midnight Navy', value: '#1a1a2e' },
-  { name: 'Olive Drab', value: '#2d3328' },
-  { name: 'Silver / Grey', value: '#c0c0c0' },
-  { name: 'Vintage Mocha', value: '#8a7968' },
+const womenSubcategories = [
+  { label: 'Pakistani Suits', slug: 'pakistani-suits' },
+  { label: 'Suits', slug: 'suits' },
+  { label: 'Cord Set', slug: 'cord-set' },
 ];
 
 export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) {
-  const { categories, loading } = useProducts();
+  const { loading } = useProducts();
   const [, setSearchParams] = useSearchParams();
+  const [womenOpen, setWomenOpen] = useState(true);
+
+  // Auto-open women accordion if a women subcategory or women gender is active
+  useEffect(() => {
+    if (
+      filters.gender === 'women' ||
+      womenSubcategories.some((s) => s.slug === filters.category)
+    ) {
+      setWomenOpen(true);
+    }
+  }, [filters.gender, filters.category]);
+
+  const handleAllCollections = () => {
+    setFilters((prev) => ({
+      ...prev,
+      gender: 'all',
+      category: 'all',
+      isSale: false,
+      isNew: false,
+    }));
+    const params = new URLSearchParams(window.location.search);
+    params.delete('gender');
+    params.delete('category');
+    params.delete('sale');
+    params.delete('new');
+    setSearchParams(params);
+  };
 
   const handleGenderChange = (gender) => {
-    setFilters((prev) => ({ ...prev, gender }));
+    setFilters((prev) => ({
+      ...prev,
+      gender,
+      category: 'all',
+      isSale: false,
+      isNew: false,
+    }));
     const params = new URLSearchParams(window.location.search);
     if (gender !== 'all') {
       params.set('gender', gender);
     } else {
       params.delete('gender');
     }
+    params.delete('category');
+    params.delete('sale');
+    params.delete('new');
     setSearchParams(params);
   };
 
-  const handleCategoryChange = (slug) => {
-    setFilters((prev) => ({ ...prev, category: slug }));
+  const handleCategoryChange = (slug, gender = 'women') => {
+    setFilters((prev) => ({
+      ...prev,
+      category: slug,
+      gender: slug === 'all' ? 'all' : gender,
+      isSale: false,
+      isNew: false,
+    }));
     const params = new URLSearchParams(window.location.search);
     if (slug !== 'all') {
       params.set('category', slug);
+      if (gender) params.set('gender', gender);
     } else {
       params.delete('category');
+      params.delete('gender');
     }
+    params.delete('sale');
+    params.delete('new');
     setSearchParams(params);
   };
 
@@ -55,26 +96,18 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
     });
   };
 
-  const toggleColor = (color) => {
-    setFilters((prev) => {
-      const currentColors = prev.colors || [];
-      return {
-        ...prev,
-        colors: currentColors.includes(color)
-          ? currentColors.filter((c) => c !== color)
-          : [...currentColors, color],
-      };
-    });
-  };
-
   const toggleSale = () => {
     setFilters((prev) => {
       const nextSale = !prev.isSale;
       const params = new URLSearchParams(window.location.search);
-      if (nextSale) params.set('sale', 'true');
-      else params.delete('sale');
+      if (nextSale) {
+        params.set('sale', 'true');
+        params.delete('new');
+      } else {
+        params.delete('sale');
+      }
       setSearchParams(params);
-      return { ...prev, isSale: nextSale };
+      return { ...prev, isSale: nextSale, isNew: nextSale ? false : prev.isNew };
     });
   };
 
@@ -82,10 +115,14 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
     setFilters((prev) => {
       const nextNew = !prev.isNew;
       const params = new URLSearchParams(window.location.search);
-      if (nextNew) params.set('new', 'true');
-      else params.delete('new');
+      if (nextNew) {
+        params.set('new', 'true');
+        params.delete('sale');
+      } else {
+        params.delete('new');
+      }
       setSearchParams(params);
-      return { ...prev, isNew: nextNew };
+      return { ...prev, isNew: nextNew, isSale: nextNew ? false : prev.isSale };
     });
   };
 
@@ -105,13 +142,27 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
     setSearchParams(new URLSearchParams());
   };
 
+  const isAllActive =
+    (!filters.category || filters.category === 'all') &&
+    (!filters.gender || filters.gender === 'all') &&
+    !filters.isNew &&
+    !filters.isSale;
+
+  const isWomenAllActive =
+    filters.gender === 'women' &&
+    (!filters.category || filters.category === 'all') &&
+    !filters.isNew &&
+    !filters.isSale;
+
+  const isMenActive =
+    filters.gender === 'men' &&
+    (!filters.category || filters.category === 'all') &&
+    !filters.isNew &&
+    !filters.isSale;
+
   const hasActiveFilters =
-    (filters.gender && filters.gender !== 'all') ||
-    (filters.category && filters.category !== 'all') ||
-    filters.isSale ||
-    filters.isNew ||
+    !isAllActive ||
     (filters.sizes?.length > 0) ||
-    (filters.colors?.length > 0) ||
     (filters.minPrice > 0) ||
     (filters.maxPrice < 10000);
 
@@ -121,8 +172,8 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
       <div className="flex items-center justify-between pb-4 border-b border-white/15">
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={16} className="text-white" />
-          <h3 className="text-xs font-bold text-white uppercase">
-            Filter Products
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+            Filters & Collections
           </h3>
         </div>
         {hasActiveFilters && (
@@ -135,63 +186,134 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
         )}
       </div>
 
-
-
-
-
-      {/* Categories */}
+      {/* Primary Category & Subcategory Navigation */}
       <div>
-        <h4 className="text-xs font-bold text-white uppercase mb-2.5">
-          Categories
+        <h4 className="text-xs font-bold text-gray-300 uppercase mb-3 flex items-center justify-between">
+          <span>Categories & Lines</span>
         </h4>
-        <div className="space-y-1">
-          {loading ? (
-            [1, 2, 3, 4, 5].map((idx) => (
-              <div
-                key={idx}
-                className="w-full h-8 bg-white/5 border border-white/5 rounded-lg animate-pulse"
-              />
-            ))
-          ) : (
-            <>
+
+        <div className="space-y-1.5">
+          {/* 1. All Collections */}
+          <button
+            onClick={handleAllCollections}
+            className={`w-full flex items-center justify-between text-left text-xs py-2.5 px-3 rounded-xl transition-all ${
+              isAllActive
+                ? 'text-white bg-brand-red font-bold shadow-lg ring-1 ring-white/20'
+                : 'text-gray-200 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>All Collections</span>
+            {isAllActive && <Check size={14} className="text-white shrink-0" />}
+          </button>
+
+          {/* 2. WOMEN Group with Subcategories */}
+          <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
+            <div className="flex items-center justify-between bg-white/5">
               <button
-                onClick={() => handleCategoryChange('all')}
-                className={`w-full flex items-center justify-between text-left text-xs py-2 px-3 rounded-lg transition-all ${
-                  !filters.category || filters.category === 'all'
-                    ? 'text-white bg-white/15 font-bold'
-                    : 'text-gray-200 hover:text-white hover:bg-white/10'
+                onClick={() => handleGenderChange('women')}
+                className={`flex-1 flex items-center justify-between text-left text-xs py-2.5 px-3 font-bold transition-all ${
+                  isWomenAllActive
+                    ? 'text-white bg-brand-red shadow-md'
+                    : 'text-white hover:text-brand-red'
                 }`}
               >
-                <span>All Categories</span>
+                <span>WOMEN (ALL)</span>
+                {isWomenAllActive && <Check size={14} className="text-white shrink-0" />}
               </button>
 
-              {categories.map((cat) => {
-                const active = filters.category === cat.slug;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleCategoryChange(cat.slug)}
-                    className={`w-full flex items-center justify-between text-left text-xs py-2 px-3 rounded-lg transition-all ${
-                      active
-                        ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
-                        : 'text-gray-200 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <span>{cat.name}</span>
-                    {cat.gender === 'women' && (
-                      <span className="text-[10px] text-red-300 bg-brand-red/20 px-1.5 py-0.5 rounded font-bold">
-                        Women
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </>
-          )}
+              <button
+                onClick={() => setWomenOpen(!womenOpen)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+                aria-label="Toggle subcategories"
+              >
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${
+                    womenOpen ? 'rotate-180 text-brand-red' : ''
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Women Subcategories (Pakistani Suits, Suits, Cord Set) */}
+            <AnimatePresence>
+              {womenOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="bg-black/60 py-1.5 px-2 space-y-1 border-t border-white/5"
+                >
+                  {womenSubcategories.map((sub) => {
+                    const isSubActive = filters.category === sub.slug;
+                    return (
+                      <button
+                        key={sub.slug}
+                        onClick={() => handleCategoryChange(sub.slug, 'women')}
+                        className={`w-full flex items-center justify-between text-left text-xs py-2 px-2.5 rounded-lg transition-all ${
+                          isSubActive
+                            ? 'text-white bg-brand-red font-bold shadow-md ring-1 ring-white/30'
+                            : 'text-gray-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span>• {sub.label}</span>
+                        {isSubActive && <Check size={13} className="text-white shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* 3. MEN Category */}
+          <button
+            onClick={() => handleGenderChange('men')}
+            className={`w-full flex items-center justify-between text-left text-xs py-2.5 px-3 rounded-xl transition-all ${
+              isMenActive
+                ? 'text-white bg-blue-600 font-bold shadow-lg ring-1 ring-white/20'
+                : 'text-gray-200 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>MEN (ALL)</span>
+            {isMenActive && <Check size={14} className="text-white shrink-0" />}
+          </button>
+
+          {/* 4. NEW ARRIVALS */}
+          <button
+            onClick={toggleNewArrivals}
+            className={`w-full flex items-center justify-between text-left text-xs py-2.5 px-3 rounded-xl transition-all ${
+              filters.isNew
+                ? 'text-white bg-brand-red font-bold shadow-lg ring-1 ring-white/20'
+                : 'text-gray-200 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles size={13} className={filters.isNew ? 'text-white' : 'text-brand-red'} />
+              <span>New Arrivals '25</span>
+            </div>
+            {filters.isNew && <Check size={14} className="text-white shrink-0" />}
+          </button>
+
+          {/* 5. SALE & ARCHIVE */}
+          <button
+            onClick={toggleSale}
+            className={`w-full flex items-center justify-between text-left text-xs py-2.5 px-3 rounded-xl transition-all ${
+              filters.isSale
+                ? 'text-white bg-brand-red font-bold shadow-lg ring-1 ring-white/20'
+                : 'text-red-400 hover:text-red-300 hover:bg-brand-red/10'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Flame size={13} className={filters.isSale ? 'text-white' : 'text-brand-red'} />
+              <span>Archive Sale</span>
+            </div>
+            {filters.isSale && <Check size={14} className="text-white shrink-0" />}
+          </button>
         </div>
       </div>
 
-      {/* Sizes */}
+      {/* Sizes Filter */}
       <div>
         <h4 className="text-xs font-bold text-white uppercase mb-2.5">
           Size
@@ -203,22 +325,21 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
               <button
                 key={size}
                 onClick={() => toggleSize(size)}
-                className={`min-w-[38px] h-9 px-2 text-xs font-bold rounded-lg border transition-all duration-200 ${
+                className={`min-w-[38px] h-9 px-2 text-xs font-bold rounded-lg border transition-all duration-200 flex items-center justify-center gap-1 ${
                   active
-                    ? 'bg-white text-black border-white shadow-md'
+                    ? 'bg-brand-red text-white border-brand-red shadow-md ring-1 ring-white/20'
                     : 'bg-[#141414] text-white border-white/15 hover:border-white/40'
                 }`}
               >
-                {size}
+                <span>{size}</span>
+                {active && <Check size={10} className="text-white" />}
               </button>
             );
           })}
         </div>
       </div>
 
-
-
-      {/* Price Range */}
+      {/* Price Range Filter */}
       <div>
         <h4 className="text-xs font-bold text-white uppercase mb-2.5">
           Price Range (₹)
@@ -231,7 +352,7 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
             onChange={(e) =>
               setFilters((prev) => ({ ...prev, minPrice: Number(e.target.value) || 0 }))
             }
-            className="w-full bg-[#141414] border border-white/20 text-white placeholder-gray-400 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-red"
+            className="w-full bg-[#141414] border border-white/20 text-white placeholder-gray-400 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-red font-medium"
           />
           <span className="text-gray-300 font-bold">—</span>
           <input
@@ -241,7 +362,7 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
             onChange={(e) =>
               setFilters((prev) => ({ ...prev, maxPrice: Number(e.target.value) || 10000 }))
             }
-            className="w-full bg-[#141414] border border-white/20 text-white placeholder-gray-400 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-red"
+            className="w-full bg-[#141414] border border-white/20 text-white placeholder-gray-400 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-red font-medium"
           />
         </div>
       </div>
@@ -272,12 +393,12 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="absolute left-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#0d0d0d] border-r border-white/20 overflow-y-auto p-6 flex flex-col justify-between"
+              className="absolute left-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#0d0d0d] border-r border-white/20 overflow-y-auto p-6 flex flex-col justify-between shadow-2xl"
             >
               <div>
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/15">
                   <h3 className="text-sm font-bold text-white uppercase">
-                    Filters & Categories
+                    Filters & Collections
                   </h3>
                   <button
                     onClick={onClose}
@@ -292,9 +413,10 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }) 
               <div className="pt-6 mt-6 border-t border-white/15 sticky bottom-0 bg-[#0d0d0d]">
                 <button
                   onClick={onClose}
-                  className="w-full btn-primary py-3.5 text-xs font-bold uppercase rounded-xl shadow-xl"
+                  className="w-full btn-primary py-3.5 text-xs font-bold uppercase rounded-xl shadow-xl flex items-center justify-center gap-2"
                 >
-                  Apply Filters
+                  <Check size={16} />
+                  <span>Apply Filters</span>
                 </button>
               </div>
             </motion.div>

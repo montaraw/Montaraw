@@ -146,13 +146,14 @@ model Coupon {
 }
 
 model Setting {
-  id           String   @id @default("singleton")
-  brandName    String   @default("MONTARAW")
-  tagline      String   @default("Born Raw. Stay Raw.")
-  contactEmail String   @default("montarawsupport@gmail.com")
-  contactPhone String   @default("+91 62064 24372")
-  instagram    String   @default("@montaraw.atelier")
-  updatedAt    DateTime @updatedAt
+  id                    String   @id @default("singleton")
+  brandName             String   @default("MONTARAW")
+  tagline               String   @default("Born Raw. Stay Raw.")
+  contactEmail          String   @default("montarawsupport@gmail.com")
+  contactPhone          String   @default("+91 97205 38576")
+  contactPhoneSecondary String?  @default("+91 62064 24372")
+  instagram             String   @default("@montaraw.atelier")
+  updatedAt             DateTime @updatedAt
 }
 
 model RecentSearch {

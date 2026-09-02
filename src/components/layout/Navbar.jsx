@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, User, Heart, ShoppingBag, Menu, X, ChevronRight, Package } from 'lucide-react';
+import { Search, User, Heart, ShoppingBag, Menu, X, ChevronRight, Package, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
@@ -8,18 +8,16 @@ import { useAuth } from '../../context/AuthContext';
 import SearchOverlay from '../ui/SearchOverlay';
 import MontarawLogo from '../ui/MontarawLogo';
 
-const navLinks = [
-  { label: 'WOMEN', path: '/shop?gender=women' },
-  { label: 'MEN', path: '/shop?gender=men' },
-  { label: 'DRESSES', path: '/shop/dresses' },
-  { label: 'OVERSIZED', path: '/shop/oversized-tshirts' },
-  { label: 'NEW ARRIVALS', path: '/shop?new=true' },
-  { label: 'COLLECTIONS', path: '/shop' },
-  { label: 'SALE', path: '/shop?sale=true', highlight: true },
+const womenSubcategories = [
+  { label: 'Pakistani Suits', path: '/shop/pakistani-suits', desc: 'Embroidered Velvet & Lawn Sets' },
+  { label: 'Suits', path: '/shop/suits', desc: 'Anarkalis & Straight Kurta Sets' },
+  { label: 'Cord Set', path: '/shop/cord-set', desc: 'Velvet & Cotton Ribbed Co-Ords' },
 ];
 
 export default function Navbar({ isScrolled = false }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileWomenOpen, setMobileWomenOpen] = useState(false); // Collapsed by default
+  const [desktopWomenOpen, setDesktopWomenOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
@@ -28,6 +26,8 @@ export default function Navbar({ isScrolled = false }) {
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setMobileWomenOpen(false);
+    setDesktopWomenOpen(false);
   }, [location]);
 
   useEffect(() => {
@@ -45,6 +45,17 @@ export default function Navbar({ isScrolled = false }) {
     return false;
   };
 
+  const isWomenActive =
+    location.pathname.includes('/shop/pakistani-suits') ||
+    location.pathname.includes('/shop/suits') ||
+    location.pathname.includes('/shop/cord-set') ||
+    location.search.includes('gender=women');
+
+  const isMenActive = location.search.includes('gender=men');
+  const isNewArrivalsActive = location.search.includes('new=true');
+  const isSaleActive = location.search.includes('sale=true');
+  const isCollectionsActive = location.pathname === '/shop' && !location.search;
+
   return (
     <>
       <nav
@@ -55,43 +66,150 @@ export default function Navbar({ isScrolled = false }) {
         }`}
       >
         <div className="max-w-[1440px] mx-auto flex items-center justify-between">
-          {/* Left: Brand Logo (Aligned cleanly on left for all devices) */}
+          {/* Left: Brand Logo */}
           <Link to="/" className="shrink-0 flex items-center gap-2">
             <MontarawLogo iconSize="w-9 h-9 md:w-12 md:h-12" textSize="text-xl md:text-2xl" />
           </Link>
 
           {/* Center Navigation (Desktop Only) */}
           <div className="hidden lg:flex items-center gap-6 xl:gap-8 absolute left-1/2 -translate-x-1/2">
-            {navLinks.map((link) => {
-              const active = isLinkActive(link.path);
-              return (
-                <Link
-                  key={link.label}
-                  to={link.path}
-                  className={`text-[12px] xl:text-[13px] font-inter transition-all duration-200 relative py-1 group font-medium ${
-                    link.highlight
-                      ? active
-                        ? 'text-red-400 font-bold'
-                        : 'text-brand-red hover:text-red-400 font-semibold'
-                      : active
-                      ? 'text-white font-bold'
-                      : 'text-gray-200 hover:text-white'
+            {/* WOMEN with Luxury Dropdown */}
+            <div
+              className="relative group py-2"
+              onMouseEnter={() => setDesktopWomenOpen(true)}
+              onMouseLeave={() => setDesktopWomenOpen(false)}
+            >
+              <Link
+                to="/shop?gender=women"
+                className={`text-[12px] xl:text-[13px] font-inter transition-all duration-200 relative py-1 flex items-center gap-1 font-medium ${
+                  isWomenActive ? 'text-white font-bold' : 'text-gray-200 hover:text-white'
+                }`}
+              >
+                <span>WOMEN</span>
+                <ChevronDown
+                  size={13}
+                  className={`transition-transform duration-200 ${
+                    desktopWomenOpen ? 'rotate-180 text-brand-red' : ''
                   }`}
-                >
-                  {link.label}
-                  <span
-                    className={`absolute -bottom-0.5 left-0 h-[2px] transition-all duration-200 ${
-                      link.highlight ? 'bg-brand-red' : 'bg-white'
-                    } ${active ? 'w-full' : 'w-0 group-hover:w-full'}`}
-                  />
-                </Link>
-              );
-            })}
+                />
+                <span
+                  className={`absolute -bottom-0.5 left-0 h-[2px] transition-all duration-200 bg-white ${
+                    isWomenActive ? 'w-full' : 'w-0 group-hover:w-full'
+                  }`}
+                />
+              </Link>
+
+              {/* Desktop Subcategory Dropdown Panel */}
+              <AnimatePresence>
+                {desktopWomenOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-72 z-50"
+                  >
+                    <div className="bg-[#101010]/98 backdrop-blur-2xl border border-white/20 rounded-2xl p-3 shadow-2xl space-y-1">
+                      <div className="px-3 py-1.5 border-b border-white/10 mb-1 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-brand-red uppercase tracking-wider">
+                          Women Atelier
+                        </span>
+                        <Link
+                          to="/shop?gender=women"
+                          className="text-[10px] text-gray-300 hover:text-white font-semibold underline"
+                        >
+                          View All
+                        </Link>
+                      </div>
+
+                      {womenSubcategories.map((sub) => (
+                        <Link
+                          key={sub.label}
+                          to={sub.path}
+                          className="block p-2.5 rounded-xl hover:bg-white/10 transition-colors group/item"
+                        >
+                          <p className="text-xs font-bold text-white group-hover/item:text-brand-red transition-colors uppercase">
+                            {sub.label}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
+                            {sub.desc}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* MEN Category */}
+            <Link
+              to="/shop?gender=men"
+              className={`text-[12px] xl:text-[13px] font-inter transition-all duration-200 relative py-1 group font-medium ${
+                isMenActive ? 'text-white font-bold' : 'text-gray-200 hover:text-white'
+              }`}
+            >
+              MEN
+              <span
+                className={`absolute -bottom-0.5 left-0 h-[2px] transition-all duration-200 bg-white ${
+                  isMenActive ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}
+              />
+            </Link>
+
+            {/* NEW ARRIVALS */}
+            <Link
+              to="/shop?new=true"
+              className={`text-[12px] xl:text-[13px] font-inter transition-all duration-200 relative py-1 group font-medium ${
+                isNewArrivalsActive ? 'text-white font-bold' : 'text-gray-200 hover:text-white'
+              }`}
+            >
+              NEW ARRIVALS
+              <span
+                className={`absolute -bottom-0.5 left-0 h-[2px] transition-all duration-200 bg-white ${
+                  isNewArrivalsActive ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}
+              />
+            </Link>
+
+            {/* COLLECTIONS */}
+            <Link
+              to="/shop"
+              className={`text-[12px] xl:text-[13px] font-inter transition-all duration-200 relative py-1 group font-medium ${
+                isCollectionsActive
+                  ? 'text-white font-bold'
+                  : 'text-gray-200 hover:text-white'
+              }`}
+            >
+              COLLECTIONS
+              <span
+                className={`absolute -bottom-0.5 left-0 h-[2px] transition-all duration-200 bg-white ${
+                  isCollectionsActive ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}
+              />
+            </Link>
+
+            {/* SALE */}
+            <Link
+              to="/shop?sale=true"
+              className={`text-[12px] xl:text-[13px] font-inter transition-all duration-200 relative py-1 group font-medium ${
+                isSaleActive
+                  ? 'text-red-400 font-bold'
+                  : 'text-brand-red hover:text-red-400 font-semibold'
+              }`}
+            >
+              SALE
+              <span
+                className={`absolute -bottom-0.5 left-0 h-[2px] transition-all duration-200 bg-brand-red ${
+                  isSaleActive ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}
+              />
+            </Link>
           </div>
 
-          {/* Right Actions: Desktop Full Bar & Mobile Menu Button on Right */}
+          {/* Right Actions */}
           <div className="flex items-center gap-1 md:gap-3">
-            {/* Quick Track Order Link (Desktop Only) */}
+            {/* Quick Track Order Link */}
             <Link
               to="/track-order"
               className="hidden xl:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/25 text-white hover:border-white text-xs font-inter transition-all bg-white/5"
@@ -101,7 +219,7 @@ export default function Navbar({ isScrolled = false }) {
               <span className="font-semibold text-white">Track Order</span>
             </Link>
 
-            {/* Search Button (Desktop Only) */}
+            {/* Search Button */}
             <button
               onClick={() => setSearchOpen(true)}
               className="hidden md:flex p-2 text-white hover:bg-white/10 rounded-full transition-colors"
@@ -110,7 +228,7 @@ export default function Navbar({ isScrolled = false }) {
               <Search size={20} />
             </button>
 
-            {/* Wishlist Icon (Desktop Only) */}
+            {/* Wishlist Icon */}
             <Link
               to="/wishlist"
               className="hidden md:flex p-2 text-white hover:bg-white/10 rounded-full transition-colors relative"
@@ -124,7 +242,7 @@ export default function Navbar({ isScrolled = false }) {
               )}
             </Link>
 
-            {/* Cart Icon (Desktop Only) */}
+            {/* Cart Icon */}
             <Link
               to="/cart"
               className="hidden md:flex p-2 text-white hover:bg-white/10 rounded-full transition-colors relative"
@@ -138,7 +256,7 @@ export default function Navbar({ isScrolled = false }) {
               )}
             </Link>
 
-            {/* Customer Account Icon (Desktop Only) */}
+            {/* Customer Account Icon */}
             <Link
               to={isCustomerLoggedIn ? '/account' : '/login'}
               className="hidden md:flex items-center gap-1.5 p-2 text-white hover:bg-white/10 rounded-full transition-colors"
@@ -153,7 +271,7 @@ export default function Navbar({ isScrolled = false }) {
               )}
             </Link>
 
-            {/* Mobile Menu Button (Placed on Right on Phone) */}
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden text-white p-2 hover:bg-white/10 rounded-xl transition-colors shrink-0 bg-white/5 border border-white/15"
@@ -233,26 +351,119 @@ export default function Navbar({ isScrolled = false }) {
 
                 {/* Mobile Nav Links */}
                 <div className="py-2">
-                  {navLinks.map((link) => {
-                    const active = isLinkActive(link.path);
-                    return (
-                      <Link
-                        key={link.label}
-                        to={link.path}
-                        className={`flex items-center justify-between px-6 py-3.5 text-xs font-inter font-medium transition-all ${
-                          link.highlight
-                            ? 'text-brand-red font-bold hover:bg-brand-red/10'
-                            : active
-                            ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
-                            : 'text-gray-200 hover:text-white hover:bg-white/10'
+                  {/* WOMEN Accordion Header - Click to open subcategories */}
+                  <div className="border-b border-white/10">
+                    <button
+                      onClick={() => setMobileWomenOpen(!mobileWomenOpen)}
+                      className={`w-full flex items-center justify-between px-6 py-3.5 text-xs font-inter font-bold transition-all text-left ${
+                        mobileWomenOpen || isWomenActive ? 'text-white bg-white/10' : 'text-gray-200 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>WOMEN</span>
+                        <span className="text-[10px] text-brand-red bg-brand-red/20 px-1.5 py-0.5 rounded font-bold">
+                          Atelier
+                        </span>
+                      </div>
+                      <ChevronDown
+                        size={16}
+                        className={`transition-transform duration-200 ${
+                          mobileWomenOpen ? 'rotate-180 text-brand-red' : 'text-gray-400'
                         }`}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <span>{link.label}</span>
-                        <ChevronRight size={16} className="text-gray-400" />
-                      </Link>
-                    );
-                  })}
+                      />
+                    </button>
+
+                    {/* Subcategories list - ONLY visible when clicked */}
+                    <AnimatePresence>
+                      {mobileWomenOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden bg-black/60 border-t border-white/5"
+                        >
+                          <div className="py-2 pl-8 pr-6 space-y-1">
+                            <Link
+                              to="/shop?gender=women"
+                              className="flex items-center justify-between py-2 text-xs text-gray-300 hover:text-white font-medium"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <span>• All Women Collection</span>
+                              <ChevronRight size={13} className="text-gray-500" />
+                            </Link>
+                            {womenSubcategories.map((sub) => (
+                              <Link
+                                key={sub.label}
+                                to={sub.path}
+                                className="flex items-center justify-between py-2 text-xs text-white hover:text-brand-red font-semibold"
+                                onClick={() => setMobileMenuOpen(false)}
+                              >
+                                <span>• {sub.label}</span>
+                                <ChevronRight size={13} className="text-gray-400" />
+                              </Link>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* MEN */}
+                  <Link
+                    to="/shop?gender=men"
+                    className={`flex items-center justify-between px-6 py-3.5 text-xs font-inter font-medium transition-all ${
+                      isMenActive
+                        ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
+                        : 'text-gray-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>MEN</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                  </Link>
+
+                  {/* NEW ARRIVALS */}
+                  <Link
+                    to="/shop?new=true"
+                    className={`flex items-center justify-between px-6 py-3.5 text-xs font-inter font-medium transition-all ${
+                      isNewArrivalsActive
+                        ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
+                        : 'text-gray-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>NEW ARRIVALS</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                  </Link>
+
+                  {/* COLLECTIONS */}
+                  <Link
+                    to="/shop"
+                    className={`flex items-center justify-between px-6 py-3.5 text-xs font-inter font-medium transition-all ${
+                      isCollectionsActive
+                        ? 'text-white bg-white/15 font-bold border-l-2 border-brand-red'
+                        : 'text-gray-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>COLLECTIONS</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                  </Link>
+
+                  {/* SALE */}
+                  <Link
+                    to="/shop?sale=true"
+                    className={`flex items-center justify-between px-6 py-3.5 text-xs font-inter font-bold transition-all ${
+                      isSaleActive
+                        ? 'text-brand-red bg-brand-red/15 border-l-2 border-brand-red'
+                        : 'text-brand-red hover:bg-brand-red/10'
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>SALE</span>
+                    <ChevronRight size={16} className="text-brand-red" />
+                  </Link>
                 </div>
               </div>
 
@@ -274,6 +485,30 @@ export default function Navbar({ isScrolled = false }) {
                   <User size={17} />
                   <span>{isCustomerLoggedIn ? 'My Account & Orders' : 'Customer Login'}</span>
                 </Link>
+
+                {/* Social Channels in Mobile Menu */}
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
+                  <span className="text-[10px] uppercase font-bold text-gray-400">Connect:</span>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white hover:text-brand-red font-medium transition-colors"
+                    >
+                      Instagram
+                    </a>
+                    <span>•</span>
+                    <a
+                      href="https://www.facebook.com/share/17Vh8emhBD/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white hover:text-brand-red font-medium transition-colors"
+                    >
+                      Facebook
+                    </a>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -80,28 +80,28 @@ export default function CategorySection() {
         </div>
 
         {/* Mobile View: Circular Avatar Bubble Row */}
-        <div className="flex md:hidden items-center justify-start gap-4 overflow-x-auto no-scrollbar py-2">
+        <div className="flex md:hidden items-center justify-center gap-6 overflow-x-auto no-scrollbar py-2">
           {categories.map((cat) => (
-            <Link key={cat.id || cat.slug} to={`/shop/${cat.slug}`} className="flex flex-col items-center shrink-0 w-20">
-              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-[#181818] shadow-md hover:border-brand-red transition-all">
+            <Link key={cat.id || cat.slug} to={`/shop/${cat.slug}`} className="flex flex-col items-center shrink-0 w-24">
+              <div className="w-18 h-18 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-[#181818] shadow-md hover:border-brand-red transition-all">
                 <img src={cat.image} alt={cat.name} className="w-full h-full object-cover rounded-full" />
               </div>
-              <span className="text-xs font-bold text-white mt-2 text-center line-clamp-1 uppercase">
-                {cat.name.split(' ')[0]}
+              <span className="text-[11px] font-bold text-white mt-2 text-center leading-tight line-clamp-2 uppercase">
+                {cat.name}
               </span>
             </Link>
           ))}
         </div>
 
         {/* Desktop View: Grid of Luxury Category Cards */}
-        <div className="hidden md:grid grid-cols-5 gap-4 lg:gap-5">
+        <div className="hidden md:grid grid-cols-3 gap-6 lg:gap-8">
           {categories.map((cat, i) => (
             <motion.div
               key={cat.id || cat.slug}
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.04 }}
+              transition={{ delay: i * 0.06 }}
             >
               <Link
                 to={`/shop/${cat.slug}`}
@@ -115,17 +115,20 @@ export default function CategorySection() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-colors" />
 
                 {/* Badge */}
-                <div className="absolute top-3 left-3">
-                  <span className="px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-[10px] font-bold text-white uppercase">
-                    {cat.gender || 'Collection'}
+                <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-[10px] font-bold text-white uppercase tracking-wider">
+                    {cat.gender || 'Women Atelier'}
                   </span>
                 </div>
 
                 {/* Bottom Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-base font-bold text-white uppercase leading-tight group-hover:text-brand-red transition-colors">
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h3 className="text-xl font-black text-white uppercase leading-tight group-hover:text-brand-red transition-colors">
                     {cat.name}
                   </h3>
+                  <span className="text-xs font-semibold text-gray-300 mt-1 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Explore Collection →
+                  </span>
                 </div>
               </Link>
             </motion.div>

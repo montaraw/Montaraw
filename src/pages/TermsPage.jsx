@@ -156,7 +156,7 @@ export default function TermsPage() {
                 Email: <a href="mailto:montarawsupport@gmail.com" className="text-white hover:text-brand-red font-bold underline transition-colors">montarawsupport@gmail.com</a>
               </p>
               <p className="text-gray-300">
-                Helpline: <a href="tel:+916206424372" className="text-white hover:text-brand-red font-bold underline transition-colors">+91 62064 24372</a> (Mon–Sat, 10:00 AM – 7:00 PM IST)
+                Primary Helpline: <a href="tel:+919720538576" className="text-white hover:text-brand-red font-bold underline transition-colors">+91 97205 38576</a> | Secondary: <a href="tel:+916206424372" className="text-gray-300 hover:text-white underline transition-colors">+91 62064 24372</a> (Mon–Sat, 10:00 AM – 7:00 PM IST)
               </p>
               <p className="text-gray-300 mt-0.5">Address: <strong className="text-white">Flat No. 102, GAZAWALI, SARWAT, Muzzafarnagar, Uttar Pradesh 251002</strong></p>
             </div>

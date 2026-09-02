@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Image as ImageIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '../../context/ProductContext';
+import ImageUploadZone from './ImageUploadZone';
 
 const emptyBanner = { title: '', subtitle: '', headline: '', buttonText: 'Shop Now', link: '/shop', image: '' };
 
@@ -57,45 +58,78 @@ export default function BannerManager() {
         </button>
       </div>
 
-      {/* Form Drawer */}
-      {showForm && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#141414] border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl space-y-4">
-          <div className="flex items-center justify-between pb-4 border-b border-white/15">
-            <h3 className="text-base font-bold text-white uppercase">{editing ? 'Edit Slide' : 'New Banner Slide'}</h3>
-            <button onClick={resetForm} className="p-2 text-white hover:text-gray-300 rounded-full bg-white/10 transition-colors"><X size={18} /></button>
+      {/* Centered Modal Popup Widget (Middle of the Screen) */}
+      <AnimatePresence>
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={resetForm}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Centered Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#141414] border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl space-y-5 z-10"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-white/15 sticky -top-2 bg-[#141414] z-20">
+                <h3 className="text-base sm:text-lg font-bold text-white uppercase">{editing ? 'Edit Slide Details' : 'New Hero Banner Slide'}</h3>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="p-2 text-white hover:text-gray-300 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">Tagline / Pill</label>
+                  <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="e.g. WOMEN COUTURE DROP" />
+                </div>
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">Main Headline</label>
+                  <input value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold" placeholder="e.g. EFFORTLESS ELEGANCE" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block font-bold text-white uppercase mb-1.5">Subtitle Description</label>
+                  <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="Short description for hero..." />
+                </div>
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">Button Text</label>
+                  <input value={form.buttonText} onChange={(e) => setForm({ ...form, buttonText: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="Shop Women" />
+                </div>
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">Button Target Link</label>
+                  <input value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="/shop?gender=women" />
+                </div>
+                <div className="md:col-span-2">
+                  <ImageUploadZone
+                    value={form.image}
+                    onChange={(url) => setForm({ ...form, image: url })}
+                    folder="montaraw_atelier/banners"
+                    label="Hero Slide Banner Image *"
+                    helpText="High-resolution banner 1600x900 PNG, JPG, WEBP — automatically uploaded to Cloudinary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-white/15">
+                <button onClick={handleSave} className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl">{editing ? 'Update' : 'Create'} Slide</button>
+                <button onClick={resetForm} className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase">Cancel</button>
+              </div>
+            </motion.div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">Tagline / Pill</label>
-              <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="e.g. WOMEN COUTURE DROP" />
-            </div>
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">Main Headline</label>
-              <input value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold" placeholder="e.g. EFFORTLESS ELEGANCE" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block font-bold text-white uppercase mb-1.5">Subtitle Description</label>
-              <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="Short description for hero..." />
-            </div>
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">Button Text</label>
-              <input value={form.buttonText} onChange={(e) => setForm({ ...form, buttonText: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="Shop Women" />
-            </div>
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">Button Target Link</label>
-              <input value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium" placeholder="/shop?gender=women" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block font-bold text-white uppercase mb-1.5">Hero Image URL</label>
-              <input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-mono" placeholder="https://images.unsplash.com/..." />
-            </div>
-          </div>
-          <div className="flex items-center gap-3 pt-4 border-t border-white/15">
-            <button onClick={handleSave} className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl">{editing ? 'Update' : 'Create'} Slide</button>
-            <button onClick={resetForm} className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase">Cancel</button>
-          </div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Grid of Banners */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

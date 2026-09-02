@@ -43,11 +43,25 @@ export default function ProductCard({ product, index = 0 }) {
         {/* Image Container */}
         <div className="relative aspect-[3/4] bg-[#141414] rounded-2xl overflow-hidden mb-3 border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-lg">
           <img
-            src={product.image}
+            src={product.image || product.images?.[0]}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className={`w-full h-full object-cover transition-all duration-500 ${
+              product.images && product.images.length > 1
+                ? 'group-hover:opacity-0 group-hover:scale-105'
+                : 'group-hover:scale-105'
+            }`}
             loading="lazy"
           />
+
+          {/* Second Perspective Image on Hover */}
+          {product.images && product.images.length > 1 && (
+            <img
+              src={product.images[1]}
+              alt={`${product.name} alternate view`}
+              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+              loading="lazy"
+            />
+          )}
 
           {/* Badges Overlay */}
           <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1">

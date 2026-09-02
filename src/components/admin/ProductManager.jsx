@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Search, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '../../context/ProductContext';
+import MultiImageUploadZone from './MultiImageUploadZone';
 
 const emptyProduct = {
   name: '',
   gender: 'women',
-  category: 'dresses',
+  category: 'pakistani-suits',
   price: '',
   originalPrice: '',
   description: '',
-  fabric: '100% Bio-Washed Combed Cotton (240 GSM)',
-  fit: 'Relaxed Fit',
+  fabric: '100% Premium Pure Fabric',
+  fit: 'Tailored Fit',
   image: '',
+  images: [],
   sizes: ['XS', 'S', 'M', 'L', 'XL'],
   colors: ['#000000'],
   colorNames: ['Noir Black'],
@@ -29,6 +31,7 @@ export default function ProductManager() {
   const [showForm, setShowForm] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   const [sizesInput, setSizesInput] = useState('XS,S,M,L,XL');
   const [colorsInput, setColorsInput] = useState('#000000');
@@ -38,6 +41,12 @@ export default function ProductManager() {
     e?.preventDefault();
     if (!form.name || !form.price) return;
 
+    const validImages = form.images && form.images.length > 0
+      ? form.images
+      : (form.image ? [form.image] : []);
+
+    const primaryImg = validImages[0] || form.image;
+
     const data = {
       ...form,
       price: Number(form.price),
@@ -45,7 +54,8 @@ export default function ProductManager() {
       sizes: sizesInput.split(',').map((s) => s.trim()).filter(Boolean),
       colors: colorsInput.split(',').map((s) => s.trim()).filter(Boolean),
       colorNames: colorNamesInput.split(',').map((s) => s.trim()).filter(Boolean),
-      images: [form.image],
+      image: primaryImg,
+      images: validImages,
     };
 
     if (editing) {
@@ -58,16 +68,21 @@ export default function ProductManager() {
 
   const handleEdit = (product) => {
     setEditing(product.id);
+    const existingImages = Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : (product.image ? [product.image] : []);
+
     setForm({
       name: product.name,
       gender: product.gender || 'women',
-      category: product.categorySlug || (typeof product.category === 'object' ? product.category?.slug : product.category) || 'dresses',
+      category: product.categorySlug || (typeof product.category === 'object' ? product.category?.slug : product.category) || 'pakistani-suits',
       price: product.price,
       originalPrice: product.originalPrice,
       description: product.description || '',
       fabric: product.fabric || '',
       fit: product.fit || '',
-      image: product.image,
+      image: product.image || existingImages[0] || '',
+      images: existingImages,
       isNew: product.isNew ?? false,
       isSale: product.isSale ?? false,
       rating: product.rating || 4.8,
@@ -88,12 +103,24 @@ export default function ProductManager() {
     setShowForm(false);
   };
 
+  const quickNewItem = (targetGender, targetCategorySlug) => {
+    resetForm();
+    setForm({
+      ...emptyProduct,
+      gender: targetGender,
+      category: targetCategorySlug,
+    });
+    setShowForm(true);
+  };
+
   const filteredList = products.filter((p) => {
     const matchesGender = genderFilter === 'all' || p.gender === genderFilter;
+    const catSlug = (typeof p.category === 'object' ? p.category?.slug : p.category) || p.categorySlug || '';
+    const matchesCategory = categoryFilter === 'all' || catSlug === categoryFilter;
     const q = searchFilter.toLowerCase();
     const catName = (typeof p.category === 'object' ? p.category?.name : p.category) || p.categorySlug || '';
     const matchesSearch = !q || p.name.toLowerCase().includes(q) || catName.toLowerCase().includes(q);
-    return matchesGender && matchesSearch;
+    return matchesGender && matchesCategory && matchesSearch;
   });
 
   return (
@@ -108,7 +135,7 @@ export default function ProductManager() {
             Product Catalog ({filteredList.length})
           </h2>
           <p className="text-xs sm:text-sm text-gray-300 mt-1">
-            Add, edit, or adjust garments across Women's, Men's, and Couture lines.
+            Add, edit, or adjust garments across Pakistani Suits, Suits, Cord Sets, and Men collections.
           </p>
         </div>
         <button
@@ -123,203 +150,302 @@ export default function ProductManager() {
         </button>
       </div>
 
-      {/* Form Drawer / Card */}
-      {showForm && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#141414] border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6"
-        >
-          <div className="flex items-center justify-between pb-4 border-b border-white/15">
-            <h3 className="text-base font-bold text-white uppercase">
-              {editing ? 'Edit Garment Details' : 'Create New Collection Piece'}
-            </h3>
-            <button onClick={resetForm} className="p-2 text-white hover:text-gray-300 rounded-full bg-white/10 transition-colors">
-              <X size={18} />
-            </button>
-          </div>
+      {/* Quick Add Subcategory Actions Bar */}
+      <div className="p-4 bg-[#141414] border border-white/15 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+        <span className="text-gray-300 font-bold uppercase text-[11px] flex items-center gap-1.5">
+          <Sparkles size={14} className="text-brand-red" />
+          Quick Add Under Subcategories:
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => quickNewItem('women', 'pakistani-suits')}
+            className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-brand-red text-white text-[11px] font-bold uppercase transition-all flex items-center gap-1"
+          >
+            <Plus size={13} /> Pakistani Suit
+          </button>
+          <button
+            onClick={() => quickNewItem('women', 'suits')}
+            className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-brand-red text-white text-[11px] font-bold uppercase transition-all flex items-center gap-1"
+          >
+            <Plus size={13} /> Suit / Anarkali
+          </button>
+          <button
+            onClick={() => quickNewItem('women', 'cord-set')}
+            className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-brand-red text-white text-[11px] font-bold uppercase transition-all flex items-center gap-1"
+          >
+            <Plus size={13} /> Cord Set
+          </button>
+          <button
+            onClick={() => quickNewItem('men', 'pakistani-suits')}
+            className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-blue-600 text-white text-[11px] font-bold uppercase transition-all flex items-center gap-1"
+          >
+            <Plus size={13} /> Men Streetwear
+          </button>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="md:col-span-2">
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Garment Title *
-              </label>
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Noir Velvet Cutout Midi Dress"
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-              />
-            </div>
+      {/* Category Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+        {[
+          { id: 'all', label: `All Garments (${products.length})` },
+          { id: 'pakistani-suits', label: `✨ Pakistani Suits (${products.filter(p => (p.categorySlug || p.category) === 'pakistani-suits').length})` },
+          { id: 'suits', label: `✨ Suits (${products.filter(p => (p.categorySlug || p.category) === 'suits').length})` },
+          { id: 'cord-set', label: `✨ Cord Sets (${products.filter(p => (p.categorySlug || p.category) === 'cord-set').length})` },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setCategoryFilter(tab.id);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase transition-all shrink-0 ${
+              categoryFilter === tab.id
+                ? 'bg-brand-red text-white shadow-lg'
+                : 'bg-white/5 text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Department / Gender *
-              </label>
-              <select
-                value={form.gender}
-                onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold uppercase"
-              >
-                <option value="women" className="bg-black text-white">Women</option>
-                <option value="men" className="bg-black text-white">Men</option>
-                <option value="unisex" className="bg-black text-white">Unisex</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Category *
-              </label>
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold uppercase"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.slug} className="bg-black text-white">
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Selling Price (₹) *
-              </label>
-              <input
-                type="number"
-                required
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                placeholder="e.g. 2499"
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Original MRP (₹)
-              </label>
-              <input
-                type="number"
-                value={form.originalPrice}
-                onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
-                placeholder="e.g. 3999"
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-              />
-            </div>
-
-            <div className="md:col-span-3">
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Image URL *
-              </label>
-              <input
-                type="text"
-                required
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                placeholder="https://images.unsplash.com/..."
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-mono"
-              />
-            </div>
-
-            <div className="md:col-span-3">
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Description
-              </label>
-              <textarea
-                rows={2}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Product description and features..."
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red resize-none font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Available Sizes (comma separated)
-              </label>
-              <input
-                type="text"
-                value={sizesInput}
-                onChange={(e) => setSizesInput(e.target.value)}
-                placeholder="XS,S,M,L,XL"
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Color Codes (hex comma separated)
-              </label>
-              <input
-                type="text"
-                value={colorsInput}
-                onChange={(e) => setColorsInput(e.target.value)}
-                placeholder="#000000,#f5f5f5"
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-white uppercase mb-1.5">
-                Color Names (comma separated)
-              </label>
-              <input
-                type="text"
-                value={colorNamesInput}
-                onChange={(e) => setColorNamesInput(e.target.value)}
-                placeholder="Noir Black,Off White"
-                className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-6 md:col-span-3 pt-2">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                <input
-                  type="checkbox"
-                  checked={form.isNew}
-                  onChange={(e) => setForm({ ...form, isNew: e.target.checked })}
-                  className="w-4 h-4 accent-brand-red"
-                />
-                <span>Mark as New Arrival Drop</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                <input
-                  type="checkbox"
-                  checked={form.isSale}
-                  onChange={(e) => setForm({ ...form, isSale: e.target.checked })}
-                  className="w-4 h-4 accent-brand-red"
-                />
-                <span>Mark as On Sale / Archive</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-4 border-t border-white/15">
-            <button
-              type="button"
-              onClick={handleSave}
-              className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl"
-            >
-              {editing ? 'Save Updates' : 'Publish Product'}
-            </button>
-            <button
-              type="button"
+      {/* Centered Modal Popup Widget (Middle of the Screen) */}
+      <AnimatePresence>
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            {/* Dark Blur Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={resetForm}
-              className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Centered Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+              className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#141414] border border-white/20 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-6 z-10"
             >
-              Cancel
-            </button>
+              <div className="flex items-center justify-between pb-4 border-b border-white/15 sticky -top-2 bg-[#141414] z-20">
+                <div>
+                  <span className="text-[10px] font-bold text-brand-red uppercase tracking-wider block">
+                    {editing ? 'Modify Inventory Piece' : 'New Collection Piece'}
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black text-white uppercase">
+                    {editing ? 'Edit Garment Details' : 'Create New Collection Piece'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="p-2 text-white hover:text-gray-300 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="md:col-span-2">
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Garment Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g. Royal Embroidered Velvet Pakistani Suit"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white placeholder-gray-400 px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Department / Gender *
+                  </label>
+                  <select
+                    value={form.gender}
+                    onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold uppercase"
+                  >
+                    <option value="women" className="bg-black text-white">Women</option>
+                    <option value="men" className="bg-black text-white">Men</option>
+                    <option value="unisex" className="bg-black text-white">Unisex</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Category / Subcategory *
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold uppercase"
+                  >
+                    <optgroup label="✨ Women Atelier Subcategories" className="bg-black text-brand-red font-bold">
+                      {categories
+                        .filter((c) => c.gender === 'women')
+                        .map((cat) => (
+                          <option key={cat.id || cat.slug} value={cat.slug} className="bg-[#181818] text-white">
+                            {cat.name}
+                          </option>
+                        ))}
+                    </optgroup>
+
+                    <optgroup label="🔥 Men / Unisex Collections" className="bg-black text-blue-400 font-bold">
+                      {categories
+                        .filter((c) => c.gender !== 'women')
+                        .map((cat) => (
+                          <option key={cat.id || cat.slug} value={cat.slug} className="bg-[#181818] text-white">
+                            {cat.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Selling Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    placeholder="e.g. 2499"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Original MRP (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.originalPrice}
+                    onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
+                    placeholder="e.g. 3999"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <MultiImageUploadZone
+                    images={form.images?.length ? form.images : (form.image ? [form.image] : [])}
+                    onChange={(newImages) => {
+                      setForm({
+                        ...form,
+                        images: newImages,
+                        image: newImages[0] || '',
+                      });
+                    }}
+                    folder="montaraw_atelier/products"
+                    label="Product Image Gallery (2-5+ Photos with Auto-Scroll Carousel) *"
+                    helpText="Upload 2, 3, 4, 5+ photos. First photo is cover; all photos will auto-scroll on product page and zoom on click."
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Product description and features..."
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red resize-none font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Available Sizes (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={sizesInput}
+                    onChange={(e) => setSizesInput(e.target.value)}
+                    placeholder="XS,S,M,L,XL"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Color Codes (hex comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={colorsInput}
+                    onChange={(e) => setColorsInput(e.target.value)}
+                    placeholder="#000000,#f5f5f5"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Color Names (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={colorNamesInput}
+                    onChange={(e) => setColorNamesInput(e.target.value)}
+                    placeholder="Noir Black,Off White"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6 md:col-span-3 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
+                    <input
+                      type="checkbox"
+                      checked={form.isNew}
+                      onChange={(e) => setForm({ ...form, isNew: e.target.checked })}
+                      className="w-4 h-4 accent-brand-red"
+                    />
+                    <span>Mark as New Arrival Drop</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
+                    <input
+                      type="checkbox"
+                      checked={form.isSale}
+                      onChange={(e) => setForm({ ...form, isSale: e.target.checked })}
+                      className="w-4 h-4 accent-brand-red"
+                    />
+                    <span>Mark as On Sale / Archive</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-white/15">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl"
+                >
+                  {editing ? 'Save Updates' : 'Publish Product'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#141414] p-3 rounded-2xl border border-white/15 shadow-xl">

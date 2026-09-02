@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Automatically ensure clean URL with /api suffix
+const cleanBase = rawUrl.replace(/\/+$/, '');
+const API_BASE_URL = cleanBase.endsWith('/api') ? cleanBase : `${cleanBase}/api`;
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -90,6 +93,37 @@ export const api = {
   // Settings
   getSettings: () => request('/settings'),
   updateSettings: (data) => request('/settings', { method: 'PUT', body: JSON.stringify(data), isAdmin: true }),
+
+  // Cloudinary Image Upload
+  uploadImage: async (fileOrBase64, folder = 'montaraw_atelier/products') => {
+    const adminToken = localStorage.getItem('montaraw_admin_token');
+    
+    // If it's a File object, send as multipart/form-data
+    if (fileOrBase64 instanceof File || fileOrBase64 instanceof Blob) {
+      const formData = new FormData();
+      formData.append('file', fileOrBase64);
+      formData.append('folder', folder);
+
+      const res = await fetch(`${API_BASE_URL}/upload`, {
+        method: 'POST',
+        headers: {
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Image upload failed.');
+      return data;
+    }
+
+    // If it's base64 string
+    return request('/upload', {
+      method: 'POST',
+      body: JSON.stringify({ image: fileOrBase64, folder }),
+      isAdmin: true,
+    });
+  },
 
   // Recent Searches (Database)
   getRecentSearches: () => request('/search/recent'),

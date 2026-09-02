@@ -9,6 +9,8 @@ import orderRoutes from './routes/order.routes.js';
 import couponRoutes from './routes/coupon.routes.js';
 import settingRoutes from './routes/setting.routes.js';
 import searchRoutes from './routes/search.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
+import path from 'path';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 
 dotenv.config();
@@ -23,8 +25,11 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
+// Static uploads serving
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -44,6 +49,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);

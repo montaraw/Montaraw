@@ -4,6 +4,7 @@ import AnnouncementBar from './AnnouncementBar';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
+import SplashScreen from '../ui/SplashScreen';
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -31,6 +32,9 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-black text-white font-inter">
+      {/* Animated First-Visit & Refresh Splash Screen */}
+      <SplashScreen />
+
       {/* Top Announcement Bar (scrolls away naturally) */}
       <AnnouncementBar />
 

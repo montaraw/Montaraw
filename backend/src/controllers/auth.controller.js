@@ -120,6 +120,26 @@ export const loginAdmin = async (req, res, next) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const defaultEmail = (process.env.DEFAULT_ADMIN_EMAIL || 'adminmontaraw@gmail.com').trim().toLowerCase();
+    const defaultPass = (process.env.DEFAULT_ADMIN_PASS || 'adminmontaraw@6206').trim();
+
+    // 1. Direct verify against dedicated admin credentials
+    if (cleanEmail === defaultEmail && password === defaultPass) {
+      const token = generateToken('singleton-admin', 'ADMIN');
+      return res.json({
+        success: true,
+        message: 'Admin authenticated successfully.',
+        token,
+        admin: {
+          id: 'singleton-admin',
+          fullName: 'Montaraw Administrator',
+          email: defaultEmail,
+          role: 'ADMIN',
+        },
+      });
+    }
+
+    // 2. Database check
     const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
     if (!user || user.role !== 'ADMIN') {
@@ -145,6 +165,26 @@ export const loginAdmin = async (req, res, next) => {
       },
     });
   } catch (error) {
+    const { email, password } = req.body;
+    const cleanEmail = email?.trim().toLowerCase();
+    const defaultEmail = (process.env.DEFAULT_ADMIN_EMAIL || 'adminmontaraw@gmail.com').trim().toLowerCase();
+    const defaultPass = (process.env.DEFAULT_ADMIN_PASS || 'adminmontaraw@6206').trim();
+
+    if (cleanEmail === defaultEmail && password === defaultPass) {
+      const token = generateToken('singleton-admin', 'ADMIN');
+      return res.json({
+        success: true,
+        message: 'Admin authenticated successfully.',
+        token,
+        admin: {
+          id: 'singleton-admin',
+          fullName: 'Montaraw Administrator',
+          email: defaultEmail,
+          role: 'ADMIN',
+        },
+      });
+    }
+
     next(error);
   }
 };

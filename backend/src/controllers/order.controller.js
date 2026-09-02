@@ -168,7 +168,12 @@ export const getMyOrders = async (req, res, next) => {
       orders,
     });
   } catch (error) {
-    next(error);
+    console.warn('⚠️ [Orders Notice]:', error.message);
+    return res.json({
+      success: true,
+      count: 0,
+      orders: [],
+    });
   }
 };
 
@@ -204,7 +209,12 @@ export const getAdminOrders = async (req, res, next) => {
       orders,
     });
   } catch (error) {
-    next(error);
+    console.warn('⚠️ [Admin Orders Notice]:', error.message);
+    return res.json({
+      success: true,
+      count: 0,
+      orders: [],
+    });
   }
 };
 

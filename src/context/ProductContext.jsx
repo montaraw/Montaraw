@@ -1,12 +1,12 @@
 import { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { defaultSettings, defaultBanners } from '../data/seedData';
+import { defaultSettings, defaultBanners, defaultCategories, defaultProducts } from '../data/seedData';
 
 const ProductContext = createContext(null);
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState(defaultProducts);
+  const [categories, setCategories] = useState(defaultCategories);
   const [banners, setBanners] = useState(defaultBanners);
   const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(true);
@@ -22,13 +22,19 @@ export function ProductProvider({ children }) {
         api.getSettings(),
       ]);
 
-      if (prodRes.status === 'fulfilled' && prodRes.value?.products) {
-        setProducts(prodRes.value.products);
+      if (prodRes.status === 'fulfilled' && Array.isArray(prodRes.value?.products)) {
+        const cleanProds = prodRes.value.products.filter(
+          (p) => !['dresses', 'oversized-tshirts', 'hoodies', 'bottoms', 'co-ords', 'dresses-gowns'].includes(p.categorySlug || p.category?.slug)
+        );
+        setProducts(cleanProds);
       }
-      if (catRes.status === 'fulfilled' && catRes.value?.categories) {
-        setCategories(catRes.value.categories);
+      if (catRes.status === 'fulfilled' && Array.isArray(catRes.value?.categories)) {
+        const cleanCats = catRes.value.categories.filter(
+          (c) => !['dresses', 'oversized-tshirts', 'hoodies', 'bottoms', 'co-ords', 'dresses-gowns'].includes(c.slug)
+        );
+        setCategories(cleanCats);
       }
-      if (banRes.status === 'fulfilled' && banRes.value?.banners) {
+      if (banRes.status === 'fulfilled' && Array.isArray(banRes.value?.banners)) {
         setBanners(banRes.value.banners);
       }
       if (setRes.status === 'fulfilled' && setRes.value?.settings) {
@@ -208,12 +214,18 @@ export function ProductProvider({ children }) {
         );
       }
 
-      // 2. Gender Filter
+      // 2. Gender Filter (Strict Isolation: Women contains only women items, Men contains only men items)
       if (gender && gender !== 'all') {
         const g = gender.toLowerCase();
         filtered = filtered.filter((p) => {
-          if (p.gender === 'unisex') return true;
-          return p.gender?.toLowerCase() === g;
+          const prodGender = (p.gender || '').toLowerCase();
+          if (g === 'women') {
+            return prodGender === 'women';
+          }
+          if (g === 'men') {
+            return prodGender === 'men';
+          }
+          return prodGender === g;
         });
       }
 
@@ -221,17 +233,18 @@ export function ProductProvider({ children }) {
       if (category && category !== 'all') {
         const catSlug = category.toLowerCase();
         if (catSlug === 'men') {
-          filtered = filtered.filter((p) => p.gender === 'men' || p.gender === 'unisex');
+          filtered = filtered.filter((p) => (p.gender || '').toLowerCase() === 'men');
         } else if (catSlug === 'women') {
-          filtered = filtered.filter((p) => p.gender === 'women' || p.gender === 'unisex');
+          filtered = filtered.filter((p) => (p.gender || '').toLowerCase() === 'women');
         } else if (catSlug === 'sale') {
           filtered = filtered.filter((p) => p.isSale || (p.originalPrice && p.originalPrice > p.price));
         } else if (catSlug === 'new-arrivals') {
           filtered = filtered.filter((p) => p.isNew);
         } else {
-          filtered = filtered.filter(
-            (p) => p.categorySlug === catSlug || p.category?.slug === catSlug || (typeof p.category === 'string' && p.category.toLowerCase() === catSlug)
-          );
+          filtered = filtered.filter((p) => {
+            const pCat = (p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '')).toLowerCase();
+            return pCat === catSlug;
+          });
         }
       }
 
