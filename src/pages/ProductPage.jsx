@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
@@ -8,16 +9,34 @@ import { useProducts } from '../context/ProductContext';
 
 export default function ProductPage() {
   const { id } = useParams();
-  const { getProductById, products } = useProducts();
+  const { getProductById, products, loading } = useProducts();
   const product = getProductById(id);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
+
+  if (loading && !product) {
+    return (
+      <div className="pt-24 min-h-screen flex items-center justify-center bg-[#0a0a0a] font-inter">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 border-brand-red border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold">Loading Atelier Garment...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
-      <div className="pt-24 min-h-screen flex items-center justify-center bg-brand-black font-inter">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-white mb-3">Product Not Found</h2>
-          <Link to="/shop" className="btn-primary rounded-xl py-3 px-6 text-xs uppercase font-bold">
-            Back to Shop
+      <div className="pt-24 min-h-screen flex items-center justify-center bg-[#0a0a0a] font-inter px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <h2 className="text-2xl md:text-3xl font-black text-white uppercase">Garment Not Found</h2>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            The piece you are looking for might have been moved or is currently in production.
+          </p>
+          <Link to="/shop" className="btn-primary rounded-xl py-3.5 px-8 text-xs uppercase font-bold inline-block shadow-xl">
+            Explore All Collections
           </Link>
         </div>
       </div>

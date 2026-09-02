@@ -89,11 +89,6 @@ export function ProductProvider({ children }) {
     }
   }, []);
 
-  const getProductById = useCallback(
-    (id) => products.find((p) => p.id === id || p.slug === id),
-    [products]
-  );
-
   // Category CRUD via Backend API
   const addCategory = useCallback(async (categoryData) => {
     try {
@@ -182,6 +177,22 @@ export function ProductProvider({ children }) {
       throw e;
     }
   }, []);
+
+  // Product Finder by ID or Slug (Case-Insensitive)
+  const getProductById = useCallback(
+    (idOrSlug) => {
+      if (!idOrSlug) return null;
+      const cleanTarget = String(idOrSlug).toLowerCase().trim();
+      return (
+        products.find(
+          (p) =>
+            String(p.id).toLowerCase() === cleanTarget ||
+            (p.slug && String(p.slug).toLowerCase() === cleanTarget)
+        ) || null
+      );
+    },
+    [products]
+  );
 
   // Robust filtering
   const filterProducts = useCallback(
