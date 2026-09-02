@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, X, Package, CheckCircle2 } from 'lucide-react';
 import { useOrders } from '../../context/OrderContext';
 
 export default function OrderManager() {
-  const { orders, updateOrderStatus } = useOrders();
+  const { orders, updateOrderStatus, fetchOrders } = useOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingInput, setTrackingInput] = useState('');
   const [trackingSaved, setTrackingSaved] = useState(false);
+
+  useEffect(() => {
+    fetchOrders?.();
+  }, [fetchOrders]);
 
   // Sync tracking input when selectedOrder changes
   const handleOpenSlip = (order) => {
