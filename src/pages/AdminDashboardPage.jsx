@@ -8,7 +8,7 @@ import MontarawLogo from '../components/ui/MontarawLogo';
 
 export default function AdminDashboardPage() {
   const { isAdminLoggedIn, adminLogout } = useAdmin();
-  const { orders } = useOrders();
+  const { orders, fetchOrders } = useOrders();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,8 +18,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!isAdminLoggedIn) {
       navigate('/admin/login');
+    } else {
+      fetchOrders?.();
     }
-  }, [isAdminLoggedIn, navigate]);
+  }, [isAdminLoggedIn, navigate, fetchOrders]);
 
   useEffect(() => {
     setSidebarOpen(false);

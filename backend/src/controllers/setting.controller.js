@@ -1,22 +1,7 @@
 import prisma from '../config/prisma.js';
-import { isDatabaseAlive, setDatabaseOffline } from '../config/dbState.js';
 
-const defaultStoreSettings = {
-  id: 'singleton',
-  brandName: 'MONTARAW',
-  tagline: 'Born Raw. Stay Raw.',
-  contactEmail: 'montarawsupport@gmail.com',
-  contactPhone: '+91 97205 38576',
-  contactPhoneSecondary: '+91 62064 24372',
-  instagram: 'https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1',
-  facebook: 'https://www.facebook.com/share/17Vh8emhBD/',
-};
-
+// Get Store Settings (Direct DB)
 export const getSettings = async (req, res, next) => {
-  if (!(await isDatabaseAlive())) {
-    return res.json({ success: true, settings: defaultStoreSettings });
-  }
-
   try {
     let settings = await prisma.setting.findUnique({
       where: { id: 'singleton' },
@@ -24,23 +9,32 @@ export const getSettings = async (req, res, next) => {
 
     if (!settings) {
       settings = await prisma.setting.create({
-        data: defaultStoreSettings,
+        data: {
+          id: 'singleton',
+          brandName: 'MONTARAW',
+          tagline: 'Born Raw. Stay Raw.',
+          contactEmail: 'montarawsupport@gmail.com',
+          contactPhone: '+91 97205 38576',
+          contactPhoneSecondary: '+91 62064 24372',
+          instagram: 'https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1',
+        },
       });
     }
 
     res.json({
       success: true,
-      settings: settings || defaultStoreSettings,
+      settings,
     });
   } catch (error) {
-    setDatabaseOffline();
-    return res.json({
-      success: true,
-      settings: defaultStoreSettings,
+    console.error('[Settings API Error]:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve settings from database.',
     });
   }
 };
 
+// Update Store Settings (Direct DB)
 export const updateSettings = async (req, res, next) => {
   try {
     const { brandName, tagline, contactEmail, contactPhone, contactPhoneSecondary, instagram } = req.body;
@@ -48,12 +42,12 @@ export const updateSettings = async (req, res, next) => {
     const settings = await prisma.setting.upsert({
       where: { id: 'singleton' },
       update: {
-        brandName,
-        tagline,
-        contactEmail,
-        contactPhone: contactPhone || '+91 97205 38576',
-        contactPhoneSecondary: contactPhoneSecondary !== undefined ? contactPhoneSecondary : '+91 62064 24372',
-        instagram,
+        brandName: brandName || undefined,
+        tagline: tagline || undefined,
+        contactEmail: contactEmail || undefined,
+        contactPhone: contactPhone || undefined,
+        contactPhoneSecondary: contactPhoneSecondary !== undefined ? contactPhoneSecondary : undefined,
+        instagram: instagram || undefined,
       },
       create: {
         id: 'singleton',
@@ -62,7 +56,7 @@ export const updateSettings = async (req, res, next) => {
         contactEmail: contactEmail || 'montarawsupport@gmail.com',
         contactPhone: contactPhone || '+91 97205 38576',
         contactPhoneSecondary: contactPhoneSecondary || '+91 62064 24372',
-        instagram: instagram || '@montaraw.atelier',
+        instagram: instagram || 'https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1',
       },
     });
 

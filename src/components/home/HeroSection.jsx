@@ -5,7 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useProducts } from '../../context/ProductContext';
 
 export default function HeroSection() {
-  const { banners } = useProducts();
+  const { banners, loading } = useProducts();
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
@@ -19,24 +19,19 @@ export default function HeroSection() {
   const prev = () => setCurrent((p) => (p - 1 + banners.length) % banners.length);
   const next = () => setCurrent((p) => (p + 1) % banners.length);
 
-  if (!banners.length) {
+  if (loading || !banners.length) {
     return (
-      <section className="relative min-h-[75vh] md:min-h-[85vh] lg:min-h-[88vh] flex items-center justify-center bg-brand-black font-inter text-white px-4">
-        <div className="text-center space-y-4 max-w-xl">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-red/20 border border-brand-red/40 backdrop-blur-md">
-            <Sparkles size={14} className="text-brand-red animate-pulse" />
-            <span className="text-[13px] font-bold text-red-300 uppercase">MONTARAW ATELIER</span>
+      <section className="relative min-h-[75vh] md:min-h-[85vh] lg:min-h-[88vh] flex items-center bg-[#0a0a0a] font-inter text-white px-4 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent" />
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-8 w-full py-10 md:py-12 animate-pulse space-y-5">
+          <div className="w-36 h-6 rounded-full bg-white/10" />
+          <div className="space-y-3">
+            <div className="h-10 sm:h-16 md:h-20 w-3/4 sm:w-2/3 bg-white/15 rounded-2xl" />
+            <div className="h-4 sm:h-5 w-1/2 sm:w-1/3 bg-white/10 rounded-lg" />
           </div>
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-normal">
-            BEYOND YOUR LIMITS
-          </h1>
-          <p className="text-sm text-gray-300">
-            High-end streetwear and couture silhouettes crafted for the uncompromising.
-          </p>
-          <div className="pt-2">
-            <Link to="/shop" className="btn-primary py-3.5 px-8 text-xs font-black uppercase rounded-xl inline-flex items-center gap-2">
-              Explore Collection <ArrowRight size={15} />
-            </Link>
+          <div className="flex gap-3 pt-2">
+            <div className="w-40 sm:w-48 h-12 rounded-xl bg-brand-red/40" />
+            <div className="w-36 sm:w-40 h-12 rounded-xl bg-white/10" />
           </div>
         </div>
       </section>
@@ -45,29 +40,29 @@ export default function HeroSection() {
   const banner = banners[current];
 
   return (
-    <section className="relative min-h-[75vh] md:min-h-[85vh] lg:min-h-[88vh] flex items-center overflow-hidden bg-brand-black font-inter text-white">
-      {/* Background Image */}
+    <section className="relative min-h-[70vh] md:min-h-[78vh] lg:min-h-[82vh] lg:max-h-[820px] flex items-center overflow-hidden bg-brand-black font-inter text-white">
+      {/* Background Image with Clean Top-Focused Framing */}
       <AnimatePresence mode="wait">
         <motion.div
           key={current}
-          initial={{ opacity: 0, scale: 1.05 }}
+          initial={{ opacity: 0, scale: 1.03 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.7 }}
           className="absolute inset-0"
         >
           <img
             src={banner.image}
             alt={banner.headline}
-            className="absolute inset-0 w-full h-full object-cover object-center opacity-95"
+            className="absolute inset-0 w-full h-full object-cover object-top md:object-[center_15%] opacity-95"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-transparent to-brand-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-transparent to-black/30" />
         </motion.div>
       </AnimatePresence>
 
-      {/* Hero Content positioned higher up */}
-      <div className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-8 w-full py-10 md:py-12 -translate-y-2 md:-translate-y-6">
+      {/* Hero Content */}
+      <div className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-8 w-full py-8 md:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           {/* Left Text Box */}
           <div className="lg:col-span-8">

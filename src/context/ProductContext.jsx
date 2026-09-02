@@ -5,13 +5,21 @@ import { defaultSettings, defaultBanners, defaultCategories, defaultProducts } f
 const ProductContext = createContext(null);
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState(defaultProducts);
-  const [categories, setCategories] = useState(defaultCategories);
-  const [banners, setBanners] = useState(defaultBanners);
-  const [settings, setSettings] = useState(defaultSettings);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [settings, setSettings] = useState({
+    brandName: 'MONTARAW',
+    tagline: 'Born Raw. Stay Raw.',
+    contactEmail: 'montarawsupport@gmail.com',
+    contactPhone: '+91 97205 38576',
+    contactPhoneSecondary: '+91 62064 24372',
+    instagram: 'https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1',
+    facebook: 'https://www.facebook.com/share/17Vh8emhBD/',
+  });
   const [loading, setLoading] = useState(true);
 
-  // Fetch 100% Live Data from Backend API
+  // Fetch 100% Live Data from Backend Database API
   const fetchBackendData = useCallback(async () => {
     try {
       setLoading(true);
@@ -23,16 +31,10 @@ export function ProductProvider({ children }) {
       ]);
 
       if (prodRes.status === 'fulfilled' && Array.isArray(prodRes.value?.products)) {
-        const cleanProds = prodRes.value.products.filter(
-          (p) => !['dresses', 'oversized-tshirts', 'hoodies', 'bottoms', 'co-ords', 'dresses-gowns'].includes(p.categorySlug || p.category?.slug)
-        );
-        setProducts(cleanProds);
+        setProducts(prodRes.value.products);
       }
       if (catRes.status === 'fulfilled' && Array.isArray(catRes.value?.categories)) {
-        const cleanCats = catRes.value.categories.filter(
-          (c) => !['dresses', 'oversized-tshirts', 'hoodies', 'bottoms', 'co-ords', 'dresses-gowns'].includes(c.slug)
-        );
-        setCategories(cleanCats);
+        setCategories(catRes.value.categories);
       }
       if (banRes.status === 'fulfilled' && Array.isArray(banRes.value?.banners)) {
         setBanners(banRes.value.banners);
@@ -41,7 +43,7 @@ export function ProductProvider({ children }) {
         setSettings(setRes.value.settings);
       }
     } catch (err) {
-      console.error('[ProductContext] Failed to fetch data from backend:', err);
+      console.error('[ProductContext] Live backend fetch error:', err);
     } finally {
       setLoading(false);
     }
