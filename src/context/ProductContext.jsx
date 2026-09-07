@@ -5,10 +5,10 @@ import { defaultSettings, defaultBanners, defaultCategories, defaultProducts } f
 const ProductContext = createContext(null);
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [banners, setBanners] = useState([]);
-  const [settings, setSettings] = useState({
+  const [products, setProducts] = useState(defaultProducts);
+  const [categories, setCategories] = useState(defaultCategories);
+  const [banners, setBanners] = useState(defaultBanners);
+  const [settings, setSettings] = useState(defaultSettings || {
     brandName: 'MONTARAW',
     tagline: 'Born Raw. Stay Raw.',
     contactEmail: 'montarawsupport@gmail.com',
@@ -30,14 +30,16 @@ export function ProductProvider({ children }) {
         api.getSettings(),
       ]);
 
-      if (prodRes.status === 'fulfilled' && Array.isArray(prodRes.value?.products)) {
+      if (prodRes.status === 'fulfilled' && Array.isArray(prodRes.value?.products) && prodRes.value.products.length > 0) {
         setProducts(prodRes.value.products);
       }
-      if (catRes.status === 'fulfilled' && Array.isArray(catRes.value?.categories)) {
+      if (catRes.status === 'fulfilled' && Array.isArray(catRes.value?.categories) && catRes.value.categories.length > 0) {
         setCategories(catRes.value.categories);
       }
-      if (banRes.status === 'fulfilled' && Array.isArray(banRes.value?.banners)) {
+      if (banRes.status === 'fulfilled' && Array.isArray(banRes.value?.banners) && banRes.value.banners.length > 0) {
         setBanners(banRes.value.banners);
+      } else {
+        setBanners(defaultBanners);
       }
       if (setRes.status === 'fulfilled' && setRes.value?.settings) {
         setSettings(setRes.value.settings);
@@ -147,13 +149,20 @@ export function ProductProvider({ children }) {
   }, []);
 
   const updateBanner = useCallback(async (id, updates) => {
+    // Optimistically update local banner state immediately
+    setBanners((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
+    );
+
     try {
       const res = await api.updateBanner(id, updates);
-      if (res.banner) {
+      if (res?.banner) {
         setBanners((prev) =>
           prev.map((b) => (b.id === id ? res.banner : b))
         );
+        return res.banner;
       }
+      return { id, ...updates };
     } catch (e) {
       console.error('[ProductContext] API updateBanner failed:', e);
       throw e;

@@ -56,10 +56,41 @@ export const createBanner = async (req, res, next) => {
 export const updateBanner = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const banner = await prisma.banner.update({
-      where: { id },
-      data: req.body,
-    });
+    const { title, subtitle, headline, buttonText, link, image, order } = req.body;
+
+    const data = {};
+    if (title !== undefined) data.title = String(title).trim();
+    if (subtitle !== undefined) data.subtitle = subtitle ? String(subtitle).trim() : '';
+    if (headline !== undefined) data.headline = String(headline).trim();
+    if (buttonText !== undefined) data.buttonText = String(buttonText).trim();
+    if (link !== undefined) data.link = String(link).trim();
+    if (image !== undefined) data.image = String(image).trim();
+    if (order !== undefined) data.order = parseInt(order, 10) || 0;
+
+    // Check if banner exists by id
+    const existing = await prisma.banner.findUnique({ where: { id } }).catch(() => null);
+
+    let banner;
+    if (existing) {
+      banner = await prisma.banner.update({
+        where: { id },
+        data,
+      });
+    } else {
+      // Fallback: if not found by id, find first matching or create new
+      const count = await prisma.banner.count();
+      banner = await prisma.banner.create({
+        data: {
+          title: data.title || 'NEW DROP',
+          subtitle: data.subtitle || '',
+          headline: data.headline || 'LUXURY ATELIER',
+          buttonText: data.buttonText || 'Explore Collection',
+          link: data.link || '/shop',
+          image: data.image || '',
+          order: data.order !== undefined ? data.order : count + 1,
+        },
+      });
+    }
 
     res.json({
       success: true,
@@ -67,6 +98,7 @@ export const updateBanner = async (req, res, next) => {
       banner,
     });
   } catch (error) {
+    console.error('[Update Banner Error]:', error.message);
     next(error);
   }
 };

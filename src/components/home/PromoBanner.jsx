@@ -15,8 +15,12 @@ export default function PromoBanner() {
           {/* Background Image */}
           <div className="absolute inset-0 z-0">
             <img
-              src="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1400&q=85"
+              src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1400&q=85"
               alt="Montaraw Drop"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1400&q=85';
+              }}
               className="w-full h-full object-cover object-right sm:object-center opacity-85"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent" />

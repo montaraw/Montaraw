@@ -11,15 +11,34 @@ export default function BannerManager() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyBanner);
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSave = () => {
-    if (!form.title || !form.headline) return;
-    if (editing) {
-      updateBanner(editing, form);
-    } else {
-      addBanner(form);
+  const handleSave = async () => {
+    if (!form.title?.trim() || !form.headline?.trim()) {
+      setErrorMsg('Title and Headline are required.');
+      return;
     }
-    resetForm();
+    if (!form.image?.trim()) {
+      setErrorMsg('Banner image URL or file is required.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setErrorMsg('');
+      if (editing) {
+        await updateBanner(editing, form);
+      } else {
+        await addBanner(form);
+      }
+      resetForm();
+    } catch (err) {
+      console.error('Save Banner Error:', err);
+      setErrorMsg(err.message || 'Failed to save banner. Please check connection.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (banner) => {
@@ -32,12 +51,15 @@ export default function BannerManager() {
       link: banner.link || '/shop',
       image: banner.image || '',
     });
+    setErrorMsg('');
     setShowForm(true);
   };
 
   const resetForm = () => {
     setForm(emptyBanner);
     setEditing(null);
+    setErrorMsg('');
+    setSaving(false);
     setShowForm(false);
   };
 
@@ -122,9 +144,36 @@ export default function BannerManager() {
                 </div>
               </div>
 
+              {errorMsg && (
+                <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-400 text-xs font-medium">
+                  {errorMsg}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 pt-4 border-t border-white/15">
-                <button onClick={handleSave} className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl">{editing ? 'Update' : 'Create'} Slide</button>
-                <button onClick={resetForm} className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase">Cancel</button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editing ? 'Update Slide' : 'Create Slide'}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  disabled={saving}
+                  className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase disabled:opacity-50"
+                >
+                  Cancel
+                </button>
               </div>
             </motion.div>
           </div>
@@ -142,7 +191,17 @@ export default function BannerManager() {
             className="bg-[#121212] border border-white/15 rounded-3xl p-4 md:p-5 shadow-xl relative overflow-hidden space-y-3"
           >
             <div className="aspect-[16/9] bg-black rounded-2xl overflow-hidden relative border border-white/15">
-              {banner.image && <img src={banner.image} alt={banner.headline} className="w-full h-full object-cover" />}
+              {banner.image && (
+                <img
+                  src={banner.image}
+                  alt={banner.headline}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1600&q=85';
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 flex flex-col justify-end">
                 <span className="text-[10px] font-bold text-brand-red uppercase">{banner.title}</span>
                 <h4 className="text-base sm:text-lg font-black text-white uppercase">{banner.headline}</h4>

@@ -52,8 +52,12 @@ export default function HeroSection() {
           className="absolute inset-0"
         >
           <img
-            src={banner.image}
+            src={banner.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1600&q=85'}
             alt={banner.headline}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1600&q=85';
+            }}
             className="absolute inset-0 w-full h-full object-cover object-top md:object-[center_15%] opacity-95"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent" />

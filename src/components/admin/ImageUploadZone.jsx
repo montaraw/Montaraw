@@ -44,6 +44,14 @@ export default function ImageUploadZone({
       reader.readAsDataURL(file);
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleTriggerFile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
     }
   };
 
@@ -139,7 +147,7 @@ export default function ImageUploadZone({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={handleTriggerFile}
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold uppercase transition-colors"
                 >
                   Change
@@ -158,7 +166,7 @@ export default function ImageUploadZone({
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleTriggerFile}
               className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
                 uploading
                   ? 'border-brand-red bg-brand-red/5'
