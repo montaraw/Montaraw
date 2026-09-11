@@ -5,10 +5,10 @@ import { defaultSettings, defaultBanners, defaultCategories, defaultProducts } f
 const ProductContext = createContext(null);
 
 export function ProductProvider({ children }) {
-  // 1. INSTANT HYDRATION: Pre-populated with rich seed catalog (0ms latency, zero blank screen)
-  const [products, setProducts] = useState(defaultProducts);
-  const [categories, setCategories] = useState(defaultCategories);
-  const [banners, setBanners] = useState(defaultBanners);
+  // 1. Initial State: Start with clean empty state so fallback mock data never flashes
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [settings, setSettings] = useState(defaultSettings || {
     brandName: 'MONTARAW',
     tagline: 'Luxury Pakistani Suits & Contemporary Couture',
@@ -18,11 +18,10 @@ export function ProductProvider({ children }) {
     instagram: 'https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1',
     facebook: 'https://www.facebook.com/share/17Vh8emhBD/',
   });
-  // loading is false by default so UI renders instantly!
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // 2. Background Stale-While-Revalidate (SWR) Sync via unified /api/homepage
+  // 2. Sync backend data
   const syncBackendData = useCallback(async () => {
     try {
       setIsSyncing(true);
@@ -47,13 +46,18 @@ export function ProductProvider({ children }) {
 
       // Sync full product catalog in background
       const prodRes = await api.getProducts();
-      if (prodRes?.products && Array.isArray(prodRes.products) && prodRes.products.length > 0) {
+      if (prodRes?.products && Array.isArray(prodRes.products)) {
         setProducts(prodRes.products);
       }
     } catch (err) {
-      console.warn('[ProductContext] Live sync notice: Running on offline/edge seed data.', err.message);
+      console.warn('[ProductContext] Live sync notice:', err.message);
+      // If live backend fails and no products are loaded, use seed data as safety
+      setProducts((prev) => (prev.length === 0 ? defaultProducts : prev));
+      setBanners((prev) => (prev.length === 0 ? defaultBanners : prev));
+      setCategories((prev) => (prev.length === 0 ? defaultCategories : prev));
     } finally {
       setIsSyncing(false);
+      setLoading(false);
     }
   }, []);
 

@@ -3,13 +3,12 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import ProductCard from '../ui/ProductCard';
 import { useProducts } from '../../context/ProductContext';
-import { defaultProducts } from '../../data/seedData';
 
 const NewArrivals = memo(function NewArrivals() {
-  const { products } = useProducts();
-  const activeProducts = (products && products.length > 0) ? products : defaultProducts;
+  const { products, loading } = useProducts();
+  const activeProducts = products || [];
 
-  // Filter New arrivals with fallback
+  // Filter New arrivals
   const allNewProducts = activeProducts.filter((p) => p.isNew);
   const displayProducts = (allNewProducts.length > 0 ? allNewProducts : activeProducts).slice(0, 8);
 
@@ -29,24 +28,44 @@ const NewArrivals = memo(function NewArrivals() {
               NEW ARRIVALS
             </h2>
           </div>
-          <Link
-            to="/shop?new=true"
-            className="flex items-center gap-1.5 text-xs font-bold text-white hover:text-red-400 transition-colors uppercase group"
-          >
-            <span>EXPLORE ALL ({allNewProducts.length || displayProducts.length})</span>
-            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
+          {!loading && displayProducts.length > 0 && (
+            <Link
+              to="/shop?new=true"
+              className="flex items-center gap-1.5 text-xs font-bold text-white hover:text-red-400 transition-colors uppercase group"
+            >
+              <span>EXPLORE ALL ({allNewProducts.length || displayProducts.length})</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          )}
         </div>
 
-        {/* Responsive Product Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-5">
-          {displayProducts.map((product, i) => (
-            <ProductCard key={product.id || `prod-${i}`} product={product} index={i} />
-          ))}
-        </div>
+        {/* Responsive Product Cards Grid or Skeleton Loader */}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl bg-[#141414] border border-white/10 p-3 flex flex-col gap-3 animate-pulse"
+              >
+                <div className="aspect-[3/4] w-full rounded-xl bg-[#1c1c1c]" />
+                <div className="space-y-2 px-1">
+                  <div className="h-3 w-16 bg-white/15 rounded" />
+                  <div className="h-4 w-3/4 bg-white/10 rounded" />
+                  <div className="h-4 w-24 bg-white/20 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : displayProducts.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-5">
+            {displayProducts.map((product, i) => (
+              <ProductCard key={product.id || `prod-${i}`} product={product} index={i} />
+            ))}
+          </div>
+        ) : null}
 
         {/* View All Button */}
-        {allNewProducts.length > displayProducts.length && (
+        {!loading && allNewProducts.length > displayProducts.length && (
           <div className="mt-8 md:mt-12 text-center">
             <Link
               to="/shop?new=true"

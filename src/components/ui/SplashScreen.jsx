@@ -14,31 +14,37 @@ export default function SplashScreen() {
     if (location.pathname.startsWith('/admin')) {
       setIsOpen(false);
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
       return;
     }
 
     const handleOpenSplash = () => {
       setIsOpen(true);
       document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     };
 
     window.addEventListener('montaraw_open_splash', handleOpenSplash);
 
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     } else {
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
 
     return () => {
       window.removeEventListener('montaraw_open_splash', handleOpenSplash);
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     };
   }, [location.pathname, isOpen]);
 
   const handleSelectGender = (gender) => {
     setIsOpen(false);
     document.body.style.overflow = '';
+    document.body.style.touchAction = '';
 
     if (gender === 'women') {
       navigate('/shop?gender=women');
@@ -62,13 +68,13 @@ export default function SplashScreen() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, scale: 0.98 }}
         transition={{ duration: 0.28 }}
-        className="fixed inset-0 z-[9999] lg:hidden w-full h-full bg-[#0a0a0a] text-white font-inter flex flex-col justify-between p-5 sm:p-6 overflow-y-auto select-none"
+        className="fixed inset-0 z-[9999] lg:hidden w-full h-[100dvh] max-h-[100dvh] bg-[#0a0a0a] text-white font-inter flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none touch-none"
       >
         {/* Subtle Ambient Red Light Effect */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-brand-red/15 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Top Header Row with Centered Animated Logo */}
-        <div className="relative w-full flex items-center justify-center pt-2 z-10">
+        <div className="relative w-full flex items-center justify-center pt-1 z-10">
           <motion.div
             initial={{ y: -20, opacity: 0, scale: 0.88 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -83,7 +89,7 @@ export default function SplashScreen() {
               transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute inset-0 bg-brand-red/25 blur-xl -z-10 rounded-full"
             />
-            <MontarawLogo iconSize="w-9 h-9" textSize="text-2xl font-black" />
+            <MontarawLogo iconSize="w-8 h-8 sm:w-9 sm:h-9" textSize="text-xl sm:text-2xl font-black" />
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
@@ -94,24 +100,24 @@ export default function SplashScreen() {
         </div>
 
         {/* Middle Section: Animated Title & 2 Category Cards */}
-        <div className="my-auto w-full max-w-md mx-auto space-y-4 sm:space-y-5 z-10 py-2">
+        <div className="my-auto w-full max-w-md mx-auto space-y-3 sm:space-y-4 z-10 py-1">
           {/* Animated Header Text */}
           <motion.div
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.18, duration: 0.35 }}
-            className="text-center space-y-1"
+            className="text-center space-y-0.5"
           >
-            <h1 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight leading-tight">
+            <h1 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight leading-tight">
               Who Are You Shopping For?
             </h1>
-            <p className="text-xs text-gray-400 font-medium">
+            <p className="text-[11px] sm:text-xs text-gray-400 font-medium">
               Choose a category to explore the latest drop
             </p>
           </motion.div>
 
           {/* 2 Interactive Cards (MEN & WOMEN) */}
-          <div className="grid grid-cols-2 gap-3.5 sm:gap-4 pt-1">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-1">
             {/* 1. MEN CARD */}
             <motion.div
               initial={{ x: -20, opacity: 0 }}
@@ -121,7 +127,7 @@ export default function SplashScreen() {
               onClick={() => handleSelectGender('men')}
               className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/15 active:border-white transition-all duration-200 bg-[#161616] flex flex-col shadow-2xl"
             >
-              <div className="aspect-[4/5] w-full overflow-hidden relative bg-black">
+              <div className="aspect-[4/5] max-h-[30vh] sm:max-h-[36vh] w-full overflow-hidden relative bg-black">
                 <img
                   src="/file_000000004af882088bac62a7d4856663.png"
                   alt="Men Collection"
@@ -130,17 +136,17 @@ export default function SplashScreen() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
               </div>
 
-              <div className="p-3 bg-[#161616] space-y-1 text-center border-t border-white/5">
-                <h2 className="text-base font-black text-white uppercase tracking-wider">
+              <div className="p-2.5 sm:p-3 bg-[#161616] space-y-1 text-center border-t border-white/5">
+                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
                   MEN
                 </h2>
                 <p className="text-[10px] text-gray-400 font-medium truncate">
                   Streetwear & Tees
                 </p>
-                <div className="pt-1.5">
-                  <button className="w-full py-2 rounded-xl bg-white text-black text-xs font-black uppercase flex items-center justify-center gap-1 shadow-md">
+                <div className="pt-1">
+                  <button className="w-full py-1.5 sm:py-2 rounded-xl bg-white text-black text-[11px] sm:text-xs font-black uppercase flex items-center justify-center gap-1 shadow-md">
                     <span>Shop Men</span>
-                    <ArrowRight size={13} />
+                    <ArrowRight size={12} />
                   </button>
                 </div>
               </div>
@@ -155,7 +161,7 @@ export default function SplashScreen() {
               onClick={() => handleSelectGender('women')}
               className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/15 active:border-brand-red transition-all duration-200 bg-[#161616] flex flex-col shadow-2xl"
             >
-              <div className="aspect-[4/5] w-full overflow-hidden relative bg-black">
+              <div className="aspect-[4/5] max-h-[30vh] sm:max-h-[36vh] w-full overflow-hidden relative bg-black">
                 <img
                   src="/file_000000002a4482068aa6da09fe513d5f.png"
                   alt="Women Collection"
@@ -164,17 +170,17 @@ export default function SplashScreen() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
               </div>
 
-              <div className="p-3 bg-[#161616] space-y-1 text-center border-t border-white/5">
-                <h2 className="text-base font-black text-white uppercase tracking-wider">
+              <div className="p-2.5 sm:p-3 bg-[#161616] space-y-1 text-center border-t border-white/5">
+                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
                   WOMEN
                 </h2>
                 <p className="text-[10px] text-gray-400 font-medium truncate">
                   Pakistani Suits & Cord Sets
                 </p>
-                <div className="pt-1.5">
-                  <button className="w-full py-2 rounded-xl bg-brand-red text-white text-xs font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-brand-red/20">
+                <div className="pt-1">
+                  <button className="w-full py-1.5 sm:py-2 rounded-xl bg-brand-red text-white text-[11px] sm:text-xs font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-brand-red/20">
                     <span>Shop Women</span>
-                    <ArrowRight size={13} />
+                    <ArrowRight size={12} />
                   </button>
                 </div>
               </div>
@@ -187,11 +193,11 @@ export default function SplashScreen() {
           initial={{ y: 15, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.32 }}
-          className="w-full text-center pb-2 -mt-2 z-10"
+          className="w-full text-center pb-2 z-10"
         >
           <button
             onClick={() => handleSelectGender('all')}
-            className="text-sm font-bold text-gray-300 hover:text-white underline underline-offset-4 tracking-wide transition-colors"
+            className="text-xs sm:text-sm font-bold text-gray-300 hover:text-white underline underline-offset-4 tracking-wide transition-colors"
           >
             Explore all products →
           </button>

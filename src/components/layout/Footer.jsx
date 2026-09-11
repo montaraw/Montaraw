@@ -29,7 +29,7 @@ export default function Footer() {
   const { settings } = useProducts();
 
   return (
-    <footer className="bg-[#0a0a0a] border-t border-white/15 text-white pb-16 md:pb-0 font-inter">
+    <footer className="bg-[#0a0a0a] border-t border-white/15 text-white pb-28 md:pb-0 font-inter">
       {/* Newsletter VIP Banner */}
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-10 md:py-12">
         <div className="bg-gradient-to-r from-[#141414] via-[#1c1c1c] to-[#141414] rounded-3xl p-6 md:p-10 border border-white/20 text-center relative overflow-hidden shadow-2xl">
@@ -163,11 +163,6 @@ export default function Footer() {
               <li>
                 <Link to="/cart" className="hover:text-white transition-colors">
                   Shopping Bag & Checkout
-                </Link>
-              </li>
-              <li>
-                <Link to="/account" className="hover:text-white transition-colors">
-                  My Customer Account
                 </Link>
               </li>
             </ul>

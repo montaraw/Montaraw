@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, User, Heart, ShoppingBag, Menu, X, ChevronRight, Package, ChevronDown } from 'lucide-react';
+import { Search, Heart, ShoppingBag, Menu, X, ChevronRight, Package, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { useAuth } from '../../context/AuthContext';
 import SearchOverlay from '../ui/SearchOverlay';
 import MontarawLogo from '../ui/MontarawLogo';
 
@@ -21,7 +20,6 @@ export default function Navbar({ isScrolled = false }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
-  const { customerUser, isCustomerLoggedIn } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -256,21 +254,6 @@ export default function Navbar({ isScrolled = false }) {
               )}
             </Link>
 
-            {/* Customer Account Icon */}
-            <Link
-              to={isCustomerLoggedIn ? '/account' : '/login'}
-              className="hidden md:flex items-center gap-1.5 p-2 text-white hover:bg-white/10 rounded-full transition-colors"
-              aria-label="Customer Account"
-              title={isCustomerLoggedIn ? `Account: ${customerUser?.fullName}` : 'Sign In'}
-            >
-              <User size={19} className={isCustomerLoggedIn ? 'text-green-400' : 'text-white'} />
-              {isCustomerLoggedIn && (
-                <span className="text-xs font-bold text-white max-w-[80px] truncate">
-                  {customerUser?.fullName?.split(' ')[0]}
-                </span>
-              )}
-            </Link>
-
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -290,7 +273,7 @@ export default function Navbar({ isScrolled = false }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] lg:hidden"
+            className="fixed inset-0 z-[100] lg:hidden"
           >
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setMobileMenuOpen(false)} />
@@ -301,7 +284,7 @@ export default function Navbar({ isScrolled = false }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.28 }}
-              className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#0d0d0d] border-l border-white/20 overflow-y-auto flex flex-col justify-between shadow-2xl"
+              className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm h-[100dvh] bg-[#0d0d0d] border-l border-white/20 overflow-y-auto flex flex-col justify-between shadow-2xl pb-6"
             >
               <div>
                 {/* Mobile Menu Header */}
@@ -319,7 +302,7 @@ export default function Navbar({ isScrolled = false }) {
                 </div>
 
                 {/* Mobile Search Button inside Drawer */}
-                <div className="px-5 pt-4 pb-1">
+                <div className="px-5 pt-4 pb-2">
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
@@ -330,23 +313,6 @@ export default function Navbar({ isScrolled = false }) {
                     <Search size={16} className="text-gray-300 shrink-0" />
                     <span className="font-medium text-gray-300">Search atelier garments...</span>
                   </button>
-                </div>
-
-                {/* Mobile Customer Status */}
-                <div className="px-5 pt-3 pb-2">
-                  <Link
-                    to={isCustomerLoggedIn ? '/account' : '/login'}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="p-3 bg-white/10 border border-white/20 rounded-xl flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <User size={16} className={isCustomerLoggedIn ? 'text-green-400' : 'text-white'} />
-                      <span className="text-xs text-white font-bold">
-                        {isCustomerLoggedIn ? `Hello, ${customerUser?.fullName}` : 'Sign In / Register'}
-                      </span>
-                    </div>
-                    <ChevronRight size={14} className="text-gray-300" />
-                  </Link>
                 </div>
 
                 {/* Mobile Nav Links */}
@@ -476,14 +442,6 @@ export default function Navbar({ isScrolled = false }) {
                 >
                   <Package size={17} />
                   <span>Track Your Order</span>
-                </Link>
-                <Link
-                  to={isCustomerLoggedIn ? '/account' : '/login'}
-                  className="flex items-center gap-3 text-white hover:text-brand-red transition-colors py-2 text-xs font-inter font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <User size={17} />
-                  <span>{isCustomerLoggedIn ? 'My Account & Orders' : 'Customer Login'}</span>
                 </Link>
 
                 {/* Social Channels in Mobile Menu */}
