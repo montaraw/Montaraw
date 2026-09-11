@@ -54,13 +54,13 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md overflow-y-auto font-inter text-white">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-3.5 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md overflow-y-auto font-inter text-white">
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 40, scale: 0.96 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="bg-[#121212] border-t sm:border border-white/20 rounded-t-3xl sm:rounded-3xl max-w-md w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col p-5 sm:p-7 md:p-8 relative overflow-hidden shadow-2xl"
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="bg-[#121212] border border-white/20 rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[90vh] sm:max-h-[88vh] flex flex-col p-5 sm:p-7 md:p-8 relative overflow-hidden shadow-2xl my-auto"
         >
           {/* Close button */}
           <button

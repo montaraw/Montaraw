@@ -102,13 +102,13 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md overflow-y-auto font-inter text-white">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3.5 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md overflow-y-auto font-inter text-white">
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 50, scale: 0.96 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="bg-[#121212] border-t sm:border border-white/20 rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col relative overflow-hidden shadow-2xl"
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="bg-[#121212] border border-white/20 rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[90vh] sm:max-h-[88vh] flex flex-col relative overflow-hidden shadow-2xl my-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/15 bg-black/40 shrink-0">
