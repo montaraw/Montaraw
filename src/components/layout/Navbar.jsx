@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Heart, ShoppingBag, Menu, X, ChevronRight, Package, ChevronDown } from 'lucide-react';
+import { Search, Heart, ShoppingBag, Menu, X, ChevronRight, Package, ChevronDown, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
 import SearchOverlay from '../ui/SearchOverlay';
 import MontarawLogo from '../ui/MontarawLogo';
 
@@ -20,6 +21,7 @@ export default function Navbar({ isScrolled = false }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
+  const { customerUser, isCustomerLoggedIn } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -254,6 +256,21 @@ export default function Navbar({ isScrolled = false }) {
               )}
             </Link>
 
+            {/* Customer Account Icon (Desktop) */}
+            <Link
+              to={isCustomerLoggedIn ? '/account' : '/login'}
+              className="hidden md:flex items-center gap-1.5 p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+              aria-label="Customer Account"
+              title={isCustomerLoggedIn ? `Account: ${customerUser?.fullName}` : 'Sign In'}
+            >
+              <User size={19} className={isCustomerLoggedIn ? 'text-green-400' : 'text-white'} />
+              {isCustomerLoggedIn && (
+                <span className="text-xs font-bold text-white max-w-[80px] truncate">
+                  {customerUser?.fullName?.split(' ')[0]}
+                </span>
+              )}
+            </Link>
+
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -315,8 +332,32 @@ export default function Navbar({ isScrolled = false }) {
                   </button>
                 </div>
 
+                {/* Mobile Customer Status / Sign In Card (Top of Drawer) */}
+                <div className="px-5 pt-1 pb-3">
+                  <Link
+                    to={isCustomerLoggedIn ? '/account' : '/login'}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-3 bg-white/10 hover:bg-white/15 border border-white/20 rounded-2xl flex items-center justify-between transition-colors shadow-sm group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/15 group-hover:border-white/30 transition-colors shrink-0">
+                        <User size={16} className={isCustomerLoggedIn ? 'text-green-400' : 'text-white'} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-white font-bold truncate">
+                          {isCustomerLoggedIn ? (customerUser?.fullName || 'My Account') : 'Sign In / Register'}
+                        </p>
+                        <p className="text-[10px] text-gray-400 truncate">
+                          {isCustomerLoggedIn ? 'Manage Orders & Profile' : 'Access your atelier account'}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-gray-300 group-hover:text-white shrink-0 transition-colors" />
+                  </Link>
+                </div>
+
                 {/* Mobile Nav Links */}
-                <div className="py-2">
+                <div className="py-1">
                   {/* WOMEN Accordion Header - Click to open subcategories */}
                   <div className="border-b border-white/10">
                     <button

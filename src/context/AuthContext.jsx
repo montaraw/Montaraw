@@ -22,23 +22,31 @@ export function AuthProvider({ children }) {
   }, [customerUser]);
 
   const customerLogin = useCallback(async (email, password) => {
-    const res = await api.loginCustomer(email, password);
-    if (res?.token) {
-      localStorage.setItem('montaraw_customer_token', res.token);
-      setCustomerUser(res.user);
-      return res.user;
+    try {
+      const res = await api.loginCustomer(email, password);
+      if (res?.token) {
+        localStorage.setItem('montaraw_customer_token', res.token);
+        setCustomerUser(res.user);
+        return { success: true, user: res.user };
+      }
+      return { success: false, message: res?.message || 'Login failed.' };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Login failed.' };
     }
-    throw new Error(res?.message || 'Login failed.');
   }, []);
 
   const customerRegister = useCallback(async (formData) => {
-    const res = await api.registerCustomer(formData);
-    if (res?.token) {
-      localStorage.setItem('montaraw_customer_token', res.token);
-      setCustomerUser(res.user);
-      return res.user;
+    try {
+      const res = await api.registerCustomer(formData);
+      if (res?.token) {
+        localStorage.setItem('montaraw_customer_token', res.token);
+        setCustomerUser(res.user);
+        return { success: true, user: res.user };
+      }
+      return { success: false, message: res?.message || 'Registration failed.' };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Registration failed.' };
     }
-    throw new Error(res?.message || 'Registration failed.');
   }, []);
 
   const customerLogout = useCallback(() => {
