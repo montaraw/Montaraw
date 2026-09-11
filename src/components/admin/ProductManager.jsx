@@ -36,16 +36,25 @@ export default function ProductManager() {
   const [sizesInput, setSizesInput] = useState('XS,S,M,L,XL');
   const [colorsInput, setColorsInput] = useState('#000000');
   const [colorNamesInput, setColorNamesInput] = useState('Noir Black');
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e?.preventDefault();
-    if (!form.name || !form.price) return;
+    if (!form.name?.trim() || !form.price) {
+      setErrorMsg('Product name and price are required.');
+      return;
+    }
 
     const validImages = form.images && form.images.length > 0
       ? form.images
       : (form.image ? [form.image] : []);
 
     const primaryImg = validImages[0] || form.image;
+    if (!primaryImg) {
+      setErrorMsg('At least one product image is required.');
+      return;
+    }
 
     const data = {
       ...form,
@@ -58,12 +67,21 @@ export default function ProductManager() {
       images: validImages,
     };
 
-    if (editing) {
-      updateProduct(editing, data);
-    } else {
-      addProduct(data);
+    try {
+      setSaving(true);
+      setErrorMsg('');
+      if (editing) {
+        await updateProduct(editing, data);
+      } else {
+        await addProduct(data);
+      }
+      resetForm();
+    } catch (err) {
+      console.error('Save Product Error:', err);
+      setErrorMsg(err.message || 'Failed to save product in database.');
+    } finally {
+      setSaving(false);
     }
-    resetForm();
   };
 
   const handleEdit = (product) => {
@@ -426,18 +444,33 @@ export default function ProductManager() {
                 </div>
               </div>
 
+              {errorMsg && (
+                <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-400 text-xs font-medium">
+                  {errorMsg}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 pt-4 border-t border-white/15">
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl"
+                  disabled={saving}
+                  className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {editing ? 'Save Updates' : 'Publish Product'}
+                  {saving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editing ? 'Save Updates' : 'Publish Product'}</span>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase"
+                  disabled={saving}
+                  className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase disabled:opacity-50"
                 >
                   Cancel
                 </button>

@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import { UploadCloud, Plus, X, Loader2, CheckCircle2, Image as ImageIcon, Star } from 'lucide-react';
 import { api } from '../../api/client';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 export default function MultiImageUploadZone({
   images = [],
   onChange,
   folder = 'montaraw_atelier/products',
   label = 'Product Image Gallery (2-5+ Photos) *',
-  helpText = 'Upload multiple high-res photos for 360° views & auto-scroll showcase',
+  helpText = 'Upload multiple high-res photos for 360° views & auto-scroll showcase (auto-optimized)',
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -18,22 +19,18 @@ export default function MultiImageUploadZone({
   const validImages = Array.isArray(images) ? images.filter(Boolean) : [];
 
   const handleFilesSelect = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
 
     setUploading(true);
     setError('');
 
     const newUrls = [];
 
-    for (const file of files) {
-      if (file.size > 15 * 1024 * 1024) {
-        setError('One or more files exceed 15MB limit.');
-        continue;
-      }
-
+    for (const rawFile of rawFiles) {
       try {
-        const res = await api.uploadImage(file, folder);
+        const optimizedFile = await compressImageFile(rawFile, { maxWidth: 1400, maxHeight: 1800, quality: 0.85 });
+        const res = await api.uploadImage(optimizedFile, folder);
         if (res?.url) {
           newUrls.push(res.url);
         } else {
@@ -48,7 +45,7 @@ export default function MultiImageUploadZone({
             newUrls.push(loadEvt.target.result);
             resolve();
           };
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(rawFile);
         });
       }
     }

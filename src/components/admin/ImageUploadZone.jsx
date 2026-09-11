@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import { UploadCloud, Image as ImageIcon, X, Loader2, CheckCircle2, Link as LinkIcon } from 'lucide-react';
 import { api } from '../../api/client';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 export default function ImageUploadZone({
   value = '',
   onChange,
   folder = 'montaraw_atelier/products',
   label = 'Garment Image *',
-  helpText = 'PNG, JPG, WEBP up to 15MB (Auto-compressed to Cloudinary CDN)',
+  helpText = 'PNG, JPG, WEBP — automatically optimized & stored permanently in cloud/database',
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -15,33 +16,31 @@ export default function ImageUploadZone({
   const fileInputRef = useRef(null);
 
   const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate size (15MB)
-    if (file.size > 15 * 1024 * 1024) {
-      setError('File is too large. Maximum size is 15MB.');
-      return;
-    }
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
     try {
       setUploading(true);
       setError('');
 
-      const res = await api.uploadImage(file, folder);
+      // 1. Client-side instant compression (e.g. 10MB -> 70KB WebP)
+      const optimizedFile = await compressImageFile(rawFile, { maxWidth: 1600, maxHeight: 1800, quality: 0.85 });
+
+      // 2. Upload to server
+      const res = await api.uploadImage(optimizedFile, folder);
       if (res?.url) {
         onChange(res.url);
       } else {
         throw new Error('No URL returned from server.');
       }
     } catch (err) {
-      console.error('[Upload Error]', err);
-      // Fallback to reading file locally as data URL so admin is never blocked
+      console.warn('[Upload Server Notice - Using Direct Base64 Fallback]:', err);
+      // Fallback to reading compressed file locally so admin is NEVER blocked
       const reader = new FileReader();
       reader.onload = (loadEvt) => {
         onChange(loadEvt.target.result);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(rawFile);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

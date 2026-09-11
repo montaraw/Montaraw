@@ -63,27 +63,20 @@ export function ProductProvider({ children }) {
 
   // Product CRUD via Backend API with Optimistic Updates
   const addProduct = useCallback(async (productData) => {
-    const localProd = { ...productData, id: productData.id || `prod-${Date.now()}` };
-    setProducts((prev) => [localProd, ...prev]);
-
     try {
       const res = await api.createProduct(productData);
       if (res?.product) {
-        setProducts((prev) => prev.map((p) => (p.id === localProd.id ? res.product : p)));
+        setProducts((prev) => [res.product, ...prev.filter((p) => p.id !== res.product.id)]);
         return res.product;
       }
-      return localProd;
+      throw new Error(res?.message || 'Server did not return created product.');
     } catch (e) {
-      console.warn('[ProductContext] API createProduct notice:', e.message);
-      return localProd;
+      console.error('[ProductContext] API createProduct error:', e.message);
+      throw e;
     }
   }, []);
 
   const updateProduct = useCallback(async (id, updates) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id || p.slug === id ? { ...p, ...updates } : p))
-    );
-
     try {
       const res = await api.updateProduct(id, updates);
       if (res?.product) {
@@ -92,115 +85,113 @@ export function ProductProvider({ children }) {
         );
         return res.product;
       }
-      return { ...updates, id };
+      throw new Error(res?.message || 'Server did not return updated product.');
     } catch (e) {
-      console.warn('[ProductContext] API updateProduct notice:', e.message);
-      return { ...updates, id };
+      console.error('[ProductContext] API updateProduct error:', e.message);
+      throw e;
     }
   }, []);
 
   const deleteProduct = useCallback(async (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
     try {
       await api.deleteProduct(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
     } catch (e) {
-      console.warn('[ProductContext] API deleteProduct notice:', e.message);
+      console.error('[ProductContext] API deleteProduct error:', e.message);
+      throw e;
     }
   }, []);
 
   // Category CRUD
   const addCategory = useCallback(async (categoryData) => {
-    const localCat = { ...categoryData, id: categoryData.id || `cat-${Date.now()}` };
-    setCategories((prev) => [...prev, localCat]);
     try {
       const res = await api.createCategory(categoryData);
       if (res?.category) {
-        setCategories((prev) => prev.map((c) => (c.id === localCat.id ? res.category : c)));
+        setCategories((prev) => [...prev.filter((c) => c.id !== res.category.id), res.category]);
         return res.category;
       }
-      return localCat;
+      throw new Error(res?.message || 'Server did not return created category.');
     } catch (e) {
-      console.error('[ProductContext] API createCategory notice:', e.message);
-      return localCat;
+      console.error('[ProductContext] API createCategory error:', e.message);
+      throw e;
     }
   }, []);
 
   const updateCategory = useCallback(async (id, updates) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
-    );
     try {
       const res = await api.updateCategory(id, updates);
       if (res?.category) {
         setCategories((prev) => prev.map((c) => (c.id === id ? res.category : c)));
+        return res.category;
       }
+      throw new Error(res?.message || 'Server did not return updated category.');
     } catch (e) {
-      console.error('[ProductContext] API updateCategory notice:', e.message);
+      console.error('[ProductContext] API updateCategory error:', e.message);
+      throw e;
     }
   }, []);
 
   const deleteCategory = useCallback(async (id) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
     try {
       await api.deleteCategory(id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch (e) {
-      console.error('[ProductContext] API deleteCategory notice:', e.message);
+      console.error('[ProductContext] API deleteCategory error:', e.message);
+      throw e;
     }
   }, []);
 
   // Banner CRUD
   const addBanner = useCallback(async (bannerData) => {
-    const localBan = { ...bannerData, id: bannerData.id || `ban-${Date.now()}` };
-    setBanners((prev) => [...prev, localBan]);
     try {
       const res = await api.createBanner(bannerData);
       if (res?.banner) {
-        setBanners((prev) => prev.map((b) => (b.id === localBan.id ? res.banner : b)));
+        setBanners((prev) => [...prev.filter((b) => b.id !== res.banner.id), res.banner]);
         return res.banner;
       }
-      return localBan;
+      throw new Error(res?.message || 'Server did not return created banner.');
     } catch (e) {
-      console.error('[ProductContext] API createBanner notice:', e.message);
-      return localBan;
+      console.error('[ProductContext] API createBanner error:', e.message);
+      throw e;
     }
   }, []);
 
   const updateBanner = useCallback(async (id, updates) => {
-    setBanners((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
-    );
     try {
       const res = await api.updateBanner(id, updates);
       if (res?.banner) {
         setBanners((prev) => prev.map((b) => (b.id === id ? res.banner : b)));
         return res.banner;
       }
-      return { id, ...updates };
+      throw new Error(res?.message || 'Server did not return updated banner.');
     } catch (e) {
-      console.error('[ProductContext] API updateBanner notice:', e.message);
-      return { id, ...updates };
+      console.error('[ProductContext] API updateBanner error:', e.message);
+      throw e;
     }
   }, []);
 
   const deleteBanner = useCallback(async (id) => {
-    setBanners((prev) => prev.filter((b) => b.id !== id));
     try {
       await api.deleteBanner(id);
+      setBanners((prev) => prev.filter((b) => b.id !== id));
     } catch (e) {
-      console.error('[ProductContext] API deleteBanner notice:', e.message);
+      console.error('[ProductContext] API deleteBanner error:', e.message);
+      throw e;
     }
   }, []);
 
   // Store Settings
   const updateSettings = useCallback(async (updates) => {
-    setSettings((prev) => ({ ...prev, ...updates }));
     try {
       const res = await api.updateSettings(updates);
       if (res?.settings) {
         setSettings(res.settings);
+        return res.settings;
       }
+      throw new Error(res?.message || 'Server did not return updated settings.');
     } catch (e) {
-      console.error('[ProductContext] API updateSettings notice:', e.message);
+      console.error('[ProductContext] API updateSettings error:', e.message);
+      throw e;
     }
   }, []);
 

@@ -39,7 +39,7 @@ export const getHomepageData = async (req, res) => {
     cache.set(CACHE_KEY, payload, 900);
 
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.json({ success: true, fromCache: false, ...payload });
   } catch (error) {
     console.warn('⚠️ [Homepage API Notice - DB Unreachable, serving fallback catalog]:', error.message);
@@ -51,9 +51,10 @@ export const getHomepageData = async (req, res) => {
       settings: defaultSettings,
     };
 
-    // Cache fallback for 60s so server doesn't hammer a disconnected DB on every tick
-    cache.set(CACHE_KEY, fallbackPayload, 60);
+    // Cache fallback for 10s
+    cache.set(CACHE_KEY, fallbackPayload, 10);
 
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.json({
       success: true,
       fromFallback: true,
@@ -64,5 +65,7 @@ export const getHomepageData = async (req, res) => {
 };
 
 export const invalidateHomepageCache = () => {
+  cache.del('montaraw:homepage:v1');
   cache.del('montaraw:homepage:*');
+  cache.flush();
 };

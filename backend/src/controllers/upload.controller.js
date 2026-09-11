@@ -69,20 +69,15 @@ export const uploadImage = async (req, res, next) => {
       console.warn('⚠️ [Cloudinary Notice - Falling back to High-Speed Local CDN]:', cloudErr.message);
     }
 
-    // Fallback: Save to high-speed public/uploads static folder or generate data URL
+    // Fallback: If Cloudinary is unavailable or not configured,
+    // convert fileBuffer to a persistent base64 Data URL so that when saved to PostgreSQL
+    // it is PERMANENTLY stored in Supabase without depending on ephemeral server disk!
     if (fileBuffer) {
-      const ext = path.extname(originalName) || '.jpg';
-      const cleanBase = path.basename(originalName, ext).replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `${cleanBase}_${Date.now()}${ext}`;
-      const filePath = path.join(uploadsDir, filename);
-
-      fs.writeFileSync(filePath, fileBuffer);
-
-      const serverUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+      const dataUri = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
       return res.json({
         success: true,
-        url: serverUrl,
-        message: 'Image successfully saved to Atelier server storage.',
+        url: dataUri,
+        message: 'Image processed and prepared for persistent storage.',
       });
     }
 

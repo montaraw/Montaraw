@@ -13,25 +13,48 @@ export default function CategoryManager() {
   const [showForm, setShowForm] = useState(false);
   const [filterTab, setFilterTab] = useState('all');
 
-  const handleSave = () => {
-    if (!form.name) return;
-    if (editing) {
-      updateCategory(editing, form);
-    } else {
-      addCategory(form);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSave = async () => {
+    if (!form.name?.trim()) {
+      setErrorMsg('Category name is required.');
+      return;
     }
-    resetForm();
+    if (!form.image?.trim()) {
+      setErrorMsg('Category image is required.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setErrorMsg('');
+      if (editing) {
+        await updateCategory(editing, form);
+      } else {
+        await addCategory(form);
+      }
+      resetForm();
+    } catch (err) {
+      console.error('Save Category Error:', err);
+      setErrorMsg(err.message || 'Failed to save category in database.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (cat) => {
     setEditing(cat.id);
     setForm({ name: cat.name, image: cat.image, gender: cat.gender || 'unisex' });
+    setErrorMsg('');
     setShowForm(true);
   };
 
   const resetForm = () => {
     setForm(emptyCategory);
     setEditing(null);
+    setErrorMsg('');
+    setSaving(false);
     setShowForm(false);
   };
 
@@ -181,9 +204,36 @@ export default function CategoryManager() {
                 </div>
               </div>
 
+              {errorMsg && (
+                <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-400 text-xs font-medium">
+                  {errorMsg}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 pt-4 border-t border-white/15">
-                <button onClick={handleSave} className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl">{editing ? 'Update' : 'Create'} Category</button>
-                <button onClick={resetForm} className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase">Cancel</button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="btn-primary py-3 px-8 text-xs font-bold uppercase rounded-xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editing ? 'Update' : 'Create'} Category</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  disabled={saving}
+                  className="px-6 py-3 border border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase disabled:opacity-50"
+                >
+                  Cancel
+                </button>
               </div>
             </motion.div>
           </div>

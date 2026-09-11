@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { invalidateHomepageCache } from './homepage.controller.js';
 
 // Get Store Settings (Direct DB)
 export const getSettings = async (req, res, next) => {
@@ -59,6 +60,8 @@ export const updateSettings = async (req, res, next) => {
         instagram: instagram || 'https://www.instagram.com/montarawsupport?igsi=MjJ2NWdrMGRtYzM1',
       },
     });
+
+    invalidateHomepageCache();
 
     res.json({
       success: true,
