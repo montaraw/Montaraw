@@ -1,7 +1,9 @@
 import prisma from '../config/prisma.js';
+import { invalidateHomepageCache } from './homepage.controller.js';
+import { defaultProducts } from '../config/defaultData.js';
 
 // Get All Products with Filters (Direct DB)
-export const getProducts = async (req, res, next) => {
+export const getProducts = async (req, res) => {
   try {
     const { gender, category, isSale, isNew, minPrice, maxPrice, search, sort } = req.query;
 
@@ -56,14 +58,15 @@ export const getProducts = async (req, res, next) => {
     res.json({
       success: true,
       count: products.length,
-      products,
+      products: products.length > 0 ? products : defaultProducts,
     });
   } catch (error) {
-    console.error('[Product API Error]:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve products from database.',
-      products: [],
+    console.warn('[Product API Notice - DB Unreachable]:', error.message);
+    res.json({
+      success: true,
+      fromFallback: true,
+      count: defaultProducts.length,
+      products: defaultProducts,
     });
   }
 };
@@ -152,6 +155,8 @@ export const createProduct = async (req, res, next) => {
       },
     });
 
+    invalidateHomepageCache();
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully.',
@@ -221,6 +226,8 @@ export const updateProduct = async (req, res, next) => {
       });
     }
 
+    invalidateHomepageCache();
+
     res.json({
       success: true,
       message: 'Product updated successfully.',
@@ -243,6 +250,8 @@ export const deleteProduct = async (req, res, next) => {
       await prisma.product.delete({ where: { id: existing.id } });
     }
 
+    invalidateHomepageCache();
+
     res.json({
       success: true,
       message: 'Product deleted successfully.',
@@ -251,3 +260,4 @@ export const deleteProduct = async (req, res, next) => {
     next(error);
   }
 };
+

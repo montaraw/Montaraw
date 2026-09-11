@@ -1,56 +1,53 @@
-import { createContext, useContext, useMemo } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '../api/client';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [customerUser, setCustomerUser] = useLocalStorage('montaraw_customer_user', null);
-
-  const customerLogin = async (email, password) => {
+  const [customerUser, setCustomerUser] = useState(() => {
     try {
-      const res = await api.loginCustomer(email, password);
-      if (res.token && res.user) {
-        localStorage.setItem('montaraw_customer_token', res.token);
-        setCustomerUser(res.user);
-        return { success: true, user: res.user };
-      }
-    } catch (err) {
-      console.warn('[AuthContext] Backend login attempt failed:', err.message);
-      return { success: false, message: err.message || 'Invalid email or password' };
+      const saved = localStorage.getItem('montaraw_customer_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
     }
-  };
+  });
 
-  const customerRegister = async ({ fullName, email, phone, password, address, city, state, pincode }) => {
-    try {
-      const res = await api.registerCustomer({
-        fullName,
-        email,
-        phone,
-        password,
-        address,
-        city,
-        state,
-        pincode,
-      });
-
-      if (res.token && res.user) {
-        localStorage.setItem('montaraw_customer_token', res.token);
-        setCustomerUser(res.user);
-        return { success: true, user: res.user };
-      }
-    } catch (err) {
-      console.warn('[AuthContext] Backend registration failed:', err.message);
-      return { success: false, message: err.message || 'Registration failed' };
+  useEffect(() => {
+    if (customerUser) {
+      localStorage.setItem('montaraw_customer_user', JSON.stringify(customerUser));
+    } else {
+      localStorage.removeItem('montaraw_customer_user');
     }
-  };
+  }, [customerUser]);
 
-  const customerLogout = () => {
+  const customerLogin = useCallback(async (email, password) => {
+    const res = await api.loginCustomer(email, password);
+    if (res?.token) {
+      localStorage.setItem('montaraw_customer_token', res.token);
+      setCustomerUser(res.user);
+      return res.user;
+    }
+    throw new Error(res?.message || 'Login failed.');
+  }, []);
+
+  const customerRegister = useCallback(async (formData) => {
+    const res = await api.registerCustomer(formData);
+    if (res?.token) {
+      localStorage.setItem('montaraw_customer_token', res.token);
+      setCustomerUser(res.user);
+      return res.user;
+    }
+    throw new Error(res?.message || 'Registration failed.');
+  }, []);
+
+  const customerLogout = useCallback(() => {
     localStorage.removeItem('montaraw_customer_token');
+    localStorage.removeItem('montaraw_customer_user');
     setCustomerUser(null);
-  };
+  }, []);
 
-  const updateCustomerProfile = async (updatedData) => {
+  const updateCustomerProfile = useCallback(async (updatedData) => {
     if (!customerUser) return;
     const updated = { ...customerUser, ...updatedData };
     setCustomerUser(updated);
@@ -58,9 +55,9 @@ export function AuthProvider({ children }) {
     try {
       await api.updateProfile(updatedData);
     } catch (err) {
-      console.warn('[AuthContext] Profile update API failed:', err.message);
+      console.warn('[AuthContext] Profile update notice:', err.message);
     }
-  };
+  }, [customerUser]);
 
   const value = useMemo(
     () => ({
@@ -71,7 +68,13 @@ export function AuthProvider({ children }) {
       customerLogout,
       updateCustomerProfile,
     }),
-    [customerUser]
+    [
+      customerUser,
+      customerLogin,
+      customerRegister,
+      customerLogout,
+      updateCustomerProfile,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

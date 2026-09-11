@@ -1,17 +1,17 @@
+import { memo, useState, useCallback } from 'react';
 import { Heart, ShoppingBag, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useState } from 'react';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 
-export default function ProductCard({ product, index = 0 }) {
+const ProductCard = memo(function ProductCard({ product }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [quickAdded, setQuickAdded] = useState(false);
   const wishlisted = isInWishlist(product.id);
 
-  const handleQuickAdd = (e) => {
+  const handleQuickAdd = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     const size = product.sizes?.[0] || 'M';
@@ -19,47 +19,52 @@ export default function ProductCard({ product, index = 0 }) {
     addToCart(product, size, color, 1);
     setQuickAdded(true);
     setTimeout(() => setQuickAdded(false), 2000);
-  };
+  }, [addToCart, product]);
 
-  const handleWishlistToggle = (e) => {
+  const handleWishlistToggle = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     toggleWishlist(product);
-  };
+  }, [toggleWishlist, product]);
 
   const discountPercent = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
+  const mainImageUrl = getOptimizedImageUrl(product.image || product.images?.[0], { width: 600, quality: 80 });
+  const hoverImageUrl = product.images && product.images.length > 1
+    ? getOptimizedImageUrl(product.images[1], { width: 600, quality: 80 })
+    : null;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.35, delay: index * 0.04 }}
-      className="group font-inter w-full min-w-0"
-    >
+    <div className="group font-inter w-full min-w-0 transition-transform duration-300">
       <Link to={`/product/${product.id}`} className="block w-full min-w-0">
-        {/* Image Container */}
+        {/* Image Container with Fixed 3:4 Aspect Ratio (Zero CLS) */}
         <div className="relative aspect-[3/4] bg-[#141414] rounded-2xl overflow-hidden mb-3 border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-lg">
           <img
-            src={product.image || product.images?.[0]}
-            alt={product.name}
-            className={`w-full h-full object-cover transition-all duration-500 ${
-              product.images && product.images.length > 1
-                ? 'group-hover:opacity-0 group-hover:scale-105'
-                : 'group-hover:scale-105'
-            }`}
+            src={mainImageUrl}
+            alt={product.name || 'Montaraw Product'}
+            width="300"
+            height="400"
             loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=600&q=80';
+            }}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
 
-          {/* Second Perspective Image on Hover */}
-          {product.images && product.images.length > 1 && (
+          {/* Optional Second Perspective Hover Image */}
+          {hoverImageUrl && (
             <img
-              src={product.images[1]}
+              src={hoverImageUrl}
               alt={`${product.name} alternate view`}
-              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+              width="300"
+              height="400"
               loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
             />
           )}
 
@@ -120,7 +125,7 @@ export default function ProductCard({ product, index = 0 }) {
         <div className="px-1 space-y-1">
           <div className="flex items-center justify-between text-[11px] text-gray-300 uppercase">
             <span className="font-semibold text-gray-300">
-              {product.gender || 'Unisex'} • {typeof product.category === 'object' && product.category?.name ? product.category.name : (typeof product.category === 'string' ? product.category.replace(/-/g, ' ') : (product.categorySlug?.replace(/-/g, ' ') || 'Collection'))}
+              {product.gender || 'Women'} • {typeof product.category === 'object' && product.category?.name ? product.category.name : (typeof product.category === 'string' ? product.category.replace(/-/g, ' ') : (product.categorySlug?.replace(/-/g, ' ') || 'Collection'))}
             </span>
           </div>
 
@@ -140,6 +145,8 @@ export default function ProductCard({ product, index = 0 }) {
           </div>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
-}
+});
+
+export default ProductCard;

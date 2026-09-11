@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { invalidateHomepageCache } from './homepage.controller.js';
 
 // Get All Categories (Direct DB)
 export const getCategories = async (req, res, next) => {
@@ -46,6 +47,8 @@ export const createCategory = async (req, res, next) => {
       },
     });
 
+    invalidateHomepageCache();
+
     res.status(201).json({
       success: true,
       message: 'Category created successfully.',
@@ -72,6 +75,8 @@ export const updateCategory = async (req, res, next) => {
       },
     });
 
+    invalidateHomepageCache();
+
     res.json({
       success: true,
       message: 'Category updated successfully.',
@@ -87,6 +92,8 @@ export const deleteCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
     await prisma.category.delete({ where: { id } });
+
+    invalidateHomepageCache();
 
     res.json({
       success: true,

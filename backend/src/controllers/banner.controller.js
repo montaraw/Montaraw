@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { invalidateHomepageCache } from './homepage.controller.js';
 
 // Get All Banners (Direct DB)
 export const getBanners = async (req, res, next) => {
@@ -42,6 +43,8 @@ export const createBanner = async (req, res, next) => {
       },
     });
 
+    invalidateHomepageCache();
+
     res.status(201).json({
       success: true,
       message: 'Banner created successfully.',
@@ -77,7 +80,6 @@ export const updateBanner = async (req, res, next) => {
         data,
       });
     } else {
-      // Fallback: if not found by id, find first matching or create new
       const count = await prisma.banner.count();
       banner = await prisma.banner.create({
         data: {
@@ -91,6 +93,8 @@ export const updateBanner = async (req, res, next) => {
         },
       });
     }
+
+    invalidateHomepageCache();
 
     res.json({
       success: true,
@@ -108,6 +112,8 @@ export const deleteBanner = async (req, res, next) => {
   try {
     const { id } = req.params;
     await prisma.banner.delete({ where: { id } });
+
+    invalidateHomepageCache();
 
     res.json({
       success: true,

@@ -19,13 +19,17 @@ export const registerCustomer = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide full name, email, and password.' });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existing) {
       return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
       data: {
         fullName: fullName.trim(),
@@ -34,7 +38,7 @@ export const registerCustomer = async (req, res, next) => {
         phone: phone ? phone.trim() : null,
         address: address ? address.trim() : null,
         city: city ? city.trim() : null,
-        state: state ? state.trim() : 'Maharashtra',
+        state: state ? state.trim() : 'Uttar Pradesh',
         pincode: pincode ? pincode.trim() : null,
         role: 'CUSTOMER',
       },
@@ -64,7 +68,7 @@ export const registerCustomer = async (req, res, next) => {
   }
 };
 
-// Customer Login
+// Customer Login with 5-Attempt Account Lockout Protection (10 Mins)
 export const loginCustomer = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -80,9 +84,52 @@ export const loginCustomer = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials. No customer found with this email.' });
     }
 
+    // 1. Check if account is locked
+    if (user.lockUntil && new Date() < new Date(user.lockUntil)) {
+      const remainingMinutes = Math.ceil((new Date(user.lockUntil).getTime() - Date.now()) / 60000);
+      return res.status(429).json({
+        success: false,
+        message: `Account is temporarily locked due to security policy. Please try again in ${remainingMinutes} minutes.`,
+      });
+    }
+
+    // 2. Verify password
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials. Incorrect password.' });
+      const failedAttempts = (user.failedAttempts || 0) + 1;
+      let lockUntil = null;
+
+      if (failedAttempts >= 5) {
+        lockUntil = new Date(Date.now() + 10 * 60 * 1000); // Lock for 10 minutes
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedAttempts: failedAttempts >= 5 ? 0 : failedAttempts,
+          lockUntil,
+        },
+      });
+
+      if (failedAttempts >= 5) {
+        return res.status(429).json({
+          success: false,
+          message: 'Account has been locked for 10 minutes following 5 consecutive failed login attempts.',
+        });
+      }
+
+      return res.status(401).json({
+        success: false,
+        message: `Invalid password. ${5 - failedAttempts} attempts remaining before temporary lockout.`,
+      });
+    }
+
+    // 3. Reset lockout counters on successful authentication
+    if (user.failedAttempts > 0 || user.lockUntil) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedAttempts: 0, lockUntil: null },
+      });
     }
 
     const token = generateToken(user.id, user.role);
@@ -165,26 +212,6 @@ export const loginAdmin = async (req, res, next) => {
       },
     });
   } catch (error) {
-    const { email, password } = req.body;
-    const cleanEmail = email?.trim().toLowerCase();
-    const defaultEmail = (process.env.DEFAULT_ADMIN_EMAIL || 'adminmontaraw@gmail.com').trim().toLowerCase();
-    const defaultPass = (process.env.DEFAULT_ADMIN_PASS || 'adminmontaraw@6206').trim();
-
-    if (cleanEmail === defaultEmail && password === defaultPass) {
-      const token = generateToken('singleton-admin', 'ADMIN');
-      return res.json({
-        success: true,
-        message: 'Admin authenticated successfully.',
-        token,
-        admin: {
-          id: 'singleton-admin',
-          fullName: 'Montaraw Administrator',
-          email: defaultEmail,
-          role: 'ADMIN',
-        },
-      });
-    }
-
     next(error);
   }
 };

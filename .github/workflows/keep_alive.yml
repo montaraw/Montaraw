@@ -1,0 +1,16 @@
+name: Montaraw Backend 24/7 Keep-Alive
+
+on:
+  schedule:
+    # Ping every 10 minutes (prevents Render free tier cold-start spin down)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health Check Ping
+        run: |
+          echo "Pinging Montaraw Production API..."
+          curl -s -f -m 15 "https://montaraw-backend.onrender.com/api/health" || echo "Ping dispatched"

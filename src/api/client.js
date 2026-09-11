@@ -17,11 +17,17 @@ async function request(endpoint, options = {}) {
     ...options.headers,
   };
 
+  // 10s Timeout AbortController to prevent hanging UI
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), options.timeout || 10000);
+
   try {
     const res = await fetch(url, {
       ...options,
       headers,
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const data = await res.json();
     if (!res.ok) {
@@ -29,12 +35,16 @@ async function request(endpoint, options = {}) {
     }
     return data;
   } catch (error) {
+    clearTimeout(timeoutId);
     console.warn(`[API Client] Error on ${endpoint}:`, error.message);
     throw error;
   }
 }
 
 export const api = {
+  // Consolidated Homepage Endpoint
+  getHomepage: () => request('/homepage', { timeout: 8000 }),
+
   // Products
   getProducts: (params = {}) => {
     const query = new URLSearchParams();

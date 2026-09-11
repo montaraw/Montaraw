@@ -1,0 +1,9 @@
+# Montaraw Robots.txt Directives
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+# XML Sitemaps
+Sitemap: https://montaraw.in/sitemap.xml
