@@ -54,30 +54,32 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto font-inter text-white">
+      <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md overflow-y-auto font-inter text-white">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-[#121212] border border-white/20 rounded-3xl max-w-md w-full p-6 md:p-8 relative overflow-hidden shadow-2xl my-8"
+          initial={{ opacity: 0, y: 40, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 40, scale: 0.96 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="bg-[#121212] border-t sm:border border-white/20 rounded-t-3xl sm:rounded-3xl max-w-md w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col p-5 sm:p-7 md:p-8 relative overflow-hidden shadow-2xl"
         >
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-white hover:text-gray-300 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 p-2 text-white hover:text-gray-300 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+            aria-label="Close modal"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
 
           {/* Logo & Header */}
-          <div className="text-center mb-6">
-            <div className="flex justify-center mb-3">
+          <div className="text-center mb-5 shrink-0">
+            <div className="flex justify-center mb-2.5">
               <MontarawLogo iconSize="w-8 h-8" textSize="text-lg" />
             </div>
-            <h2 className="text-xl font-black text-white uppercase">
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight">
               {isRegister ? 'Create Customer Account' : 'Sign In to Proceed'}
             </h2>
-            <p className="text-xs text-gray-300 mt-1">
+            <p className="text-[11px] sm:text-xs text-gray-300 mt-1">
               {isRegister
                 ? 'Sign up to complete your checkout and track orders'
                 : 'Customer login required before checkout'}

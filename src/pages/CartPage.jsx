@@ -7,25 +7,37 @@ import CartSummary from '../components/cart/CartSummary';
 import CouponSection from '../components/cart/CouponSection';
 import CheckoutModal from '../components/cart/CheckoutModal';
 import OrderSuccessModal from '../components/cart/OrderSuccessModal';
+import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function CartPage() {
   const { cart, clearCart } = useCart();
+  const { isCustomerLoggedIn } = useAuth();
   const [searchParams] = useSearchParams();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null);
 
-  // Handle direct checkout trigger
+  // Handle direct checkout trigger with customer login check
   const handleProceedToCheckout = () => {
-    setCheckoutOpen(true);
+    if (!isCustomerLoggedIn) {
+      setAuthModalOpen(true);
+    } else {
+      setCheckoutOpen(true);
+    }
   };
 
   // Auto-open checkout if navigated with ?checkout=true (Buy Now action)
   useEffect(() => {
     if (searchParams.get('checkout') === 'true' && cart.length > 0) {
-      setCheckoutOpen(true);
+      if (!isCustomerLoggedIn) {
+        setAuthModalOpen(true);
+      } else {
+        setCheckoutOpen(true);
+      }
     }
-  }, [searchParams, cart.length]);
+  }, [searchParams, cart.length, isCustomerLoggedIn]);
 
   return (
     <div className="pt-8 md:pt-12 pb-20 min-h-screen bg-brand-black font-inter text-white">
@@ -110,6 +122,16 @@ export default function CartPage() {
           </motion.div>
         )}
       </div>
+
+      {/* Customer Compulsory Login Modal */}
+      <CustomerAuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onAuthSuccess={() => {
+          setAuthModalOpen(false);
+          setCheckoutOpen(true);
+        }}
+      />
 
       {/* Checkout Modal */}
       <CheckoutModal
