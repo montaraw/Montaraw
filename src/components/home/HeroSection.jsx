@@ -42,7 +42,10 @@ const HeroSection = memo(function HeroSection() {
   }
 
   const banner = activeBanners[current] || activeBanners[0] || defaultBanners[0];
-  const optimizedBannerImg = getOptimizedImageUrl(banner?.image, { width: 1400, quality: 85 });
+  const fallbackBannerImg = current === 1
+    ? '/file_000000002a4482068aa6da09fe513d5f.png'
+    : '/file_000000004af882088bac62a7d4856663.png';
+  const optimizedBannerImg = getOptimizedImageUrl(banner?.image || fallbackBannerImg, { width: 1400, quality: 85 });
 
   return (
     <section className="relative min-h-[70vh] md:min-h-[78vh] lg:min-h-[82vh] lg:max-h-[820px] flex items-center overflow-hidden bg-brand-black font-inter text-white">
@@ -64,7 +67,7 @@ const HeroSection = memo(function HeroSection() {
             decoding="async"
             onError={(e) => {
               e.currentTarget.onerror = null;
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1400&q=80';
+              e.currentTarget.src = fallbackBannerImg;
             }}
             className="absolute inset-0 w-full h-full object-cover object-top md:object-[center_15%] opacity-95"
           />
@@ -105,7 +108,7 @@ const HeroSection = memo(function HeroSection() {
 
                 {/* Subtitle Description */}
                 <p className="text-[14px] sm:text-[16px] text-gray-100 font-medium leading-relaxed max-w-lg mb-7">
-                  {banner.subtitle || 'Pakistani Suits, Anarkali Suits, and Modern Velvet Cord Sets crafted for the uncompromising.'}
+                  {banner.subtitle || 'Signature 240 GSM Oversized T-Shirts, Drop Shoulder Streetwear, and Luxury Couture.'}
                 </p>
 
                 {/* CTA Action Buttons */}

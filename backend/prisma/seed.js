@@ -265,10 +265,10 @@ async function main() {
     {
       title: "NEW COLLECTION '25",
       headline: 'BEYOND YOUR LIMITS',
-      subtitle: 'Pakistani Suits, Anarkali Suits, and Modern Velvet Cord Sets crafted for the uncompromising.',
+      subtitle: 'Signature 240 GSM Oversized T-Shirts and Heavyweight Drop Shoulder Streetwear crafted for the uncompromising.',
       buttonText: 'EXPLORE COLLECTION',
       link: '/shop',
-      image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1600&q=85',
+      image: '/file_000000004af882088bac62a7d4856663.png',
       order: 1,
     },
     {
@@ -277,16 +277,16 @@ async function main() {
       subtitle: 'Intricate embroidery, pure Chiffon dupattas, and sculpted silhouettes.',
       buttonText: 'SHOP WOMEN',
       link: '/shop?gender=women',
-      image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1600&q=85',
+      image: '/file_000000002a4482068aa6da09fe513d5f.png',
       order: 2,
     },
     {
-      title: 'CORD SETS & COUTURE',
+      title: 'SUITS & CORD SETS',
       headline: 'EFFORTLESS LUXURY',
-      subtitle: 'Plush ribbed velvet cord sets and modern relaxed tailoring.',
+      subtitle: 'Plush ribbed velvet cord sets, handcrafted suits, and modern atelier co-ords.',
       buttonText: 'SHOP CORD SETS',
       link: '/shop/cord-set',
-      image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1600&q=85',
+      image: '/file_000000004af882088bac62a7d4856663.png',
       order: 3,
     },
   ];
