@@ -2,9 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Google Search & Universal Favicon Standards -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Montaraw | Luxury Pakistani Suits, Velvet Cord Sets & Suits Online India</title>
     <meta name="description" content="Shop authentic luxury Pakistani suits, royal velvet cord sets, and designer party wear from Montaraw Atelier. Fast delivery across Muzaffarnagar, Uttar Pradesh & India." />
@@ -37,15 +43,25 @@
       "@context": "https://schema.org",
       "@graph": [
         {
-          "@type": "ClothingStore",
-          "@id": "https://montaraw.in/#store",
+          "@type": ["ClothingStore", "OnlineBusiness", "Organization"],
+          "@id": "https://montaraw.in/#organization",
           "name": "Montaraw Atelier",
+          "alternateName": ["Montaraw", "Montaraw Fashion", "Montaraw Luxury Atelier"],
           "url": "https://montaraw.in",
-          "logo": "https://montaraw.in/logo.png",
-          "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=85",
-          "description": "Premium luxury fashion atelier specializing in authentic Pakistani Suits, Velvet Cord Sets, and Designer Couture in Muzaffarnagar, Uttar Pradesh, India.",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://montaraw.in/favicon-512x512.png",
+            "width": "512",
+            "height": "512"
+          },
+          "image": "https://montaraw.in/favicon-512x512.png",
+          "description": "Montaraw is a premier Indian luxury fashion atelier specializing in authentic Pakistani Suits, royal velvet cord sets, anarkalis, and designer party wear with nationwide delivery.",
           "telephone": "+919720538576",
           "email": "montarawsupport@gmail.com",
+          "sameAs": [
+            "https://www.instagram.com/montaraw",
+            "https://www.facebook.com/montaraw"
+          ],
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "Civil Lines",
@@ -67,6 +83,9 @@
           "@id": "https://montaraw.in/#website",
           "url": "https://montaraw.in",
           "name": "Montaraw",
+          "publisher": {
+            "@id": "https://montaraw.in/#organization"
+          },
           "potentialAction": {
             "@type": "SearchAction",
             "target": "https://montaraw.in/shop?search={search_term_string}",
