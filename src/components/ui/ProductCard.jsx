@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { Heart, ShoppingBag, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../../context/WishlistContext';
@@ -22,6 +22,17 @@ const ProductCard = memo(function ProductCard({ product }) {
   );
 
   const activeMedia = mediaList[activeMediaIndex] || mediaList[0] || { type: 'image', url: product.image };
+
+  // Continuous auto-sliding for product card media items
+  useEffect(() => {
+    if (mediaList.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setActiveMediaIndex((prev) => (prev + 1) % mediaList.length);
+    }, 3200);
+
+    return () => clearInterval(interval);
+  }, [mediaList.length]);
 
   const handlePrevMedia = useCallback(
     (e) => {

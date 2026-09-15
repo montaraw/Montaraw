@@ -6,7 +6,6 @@ import { normalizeProductMedia, getEmbedVideoUrl } from '../../utils/mediaHelper
 export default function ImageGallery({ images = [], videos = [] }) {
   const [active, setActive] = useState(0);
   const [zoomed, setZoomed] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
   // Normalize media items into unified list of images and videos
   const mediaList = normalizeProductMedia(images, videos);
@@ -19,12 +18,10 @@ export default function ImageGallery({ images = [], videos = [] }) {
 
   // Touch swipe support for mobile
   const handleTouchStart = (e) => {
-    setIsPaused(true);
     touchStartX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e) => {
-    setIsPaused(false);
     if (touchStartX.current === null) return;
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX;
@@ -35,16 +32,16 @@ export default function ImageGallery({ images = [], videos = [] }) {
     touchStartX.current = null;
   };
 
-  // Auto-scroll slideshow every 4 seconds ONLY when viewing static images and not paused/zoomed
+  // Continuous auto-slide slideshow every 3.5 seconds (excluding when video is active or in fullscreen zoom)
   useEffect(() => {
-    if (mediaList.length <= 1 || isPaused || zoomed || activeMedia?.type === 'video') return;
+    if (mediaList.length <= 1 || zoomed || activeMedia?.type === 'video') return;
 
     const interval = setInterval(() => {
       setActive((prevIdx) => (prevIdx + 1) % mediaList.length);
-    }, 4000);
+    }, 3500);
 
     return () => clearInterval(interval);
-  }, [mediaList.length, isPaused, zoomed, activeMedia?.type]);
+  }, [mediaList.length, zoomed, activeMedia?.type]);
 
   // Keyboard navigation for zoomed modal
   useEffect(() => {
@@ -73,8 +70,6 @@ export default function ImageGallery({ images = [], videos = [] }) {
       {/* Main Showcase (Image or Video) */}
       <div
         className="relative aspect-[3/4] bg-[#111111] rounded-3xl overflow-hidden border border-white/15 group shadow-2xl"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
