@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ZoomIn, X, Play, Film, Volume2, Maximize2 } from 'lucide-react';
-import { normalizeProductMedia, getEmbedVideoUrl, isVideoUrl } from '../../utils/mediaHelper';
+import { ChevronLeft, ChevronRight, ZoomIn, X, Play } from 'lucide-react';
+import { normalizeProductMedia, getEmbedVideoUrl } from '../../utils/mediaHelper';
 
 export default function ImageGallery({ images = [], videos = [] }) {
   const [active, setActive] = useState(0);

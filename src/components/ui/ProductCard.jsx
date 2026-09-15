@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useRef } from 'react';
-import { Heart, ShoppingBag, Check, ChevronLeft, ChevronRight, Play, Film } from 'lucide-react';
+import { Heart, ShoppingBag, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
