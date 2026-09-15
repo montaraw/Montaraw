@@ -3,10 +3,15 @@ import { Package, FolderOpen, Image, ShoppingCart, IndianRupee, Truck, ArrowRigh
 import { motion } from 'framer-motion';
 import { useProducts } from '../../context/ProductContext';
 import { useOrders } from '../../context/OrderContext';
+import { AdminStatsSkeleton } from '../ui/loading/AdminSkeletons';
 
 export default function DashboardStats() {
-  const { products, categories, banners, resetToDefaults } = useProducts();
-  const { orders } = useOrders();
+  const { products, categories, banners, loading: prodLoading } = useProducts();
+  const { orders, loading: orderLoading } = useOrders();
+
+  if ((prodLoading || orderLoading) && products.length === 0 && orders.length === 0) {
+    return <AdminStatsSkeleton />;
+  }
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const pendingOrders = orders.filter((o) => o.status === 'Processing').length;

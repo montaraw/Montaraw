@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, X, Package, CheckCircle2 } from 'lucide-react';
 import { useOrders } from '../../context/OrderContext';
+import { AdminTableSkeleton } from '../ui/loading/AdminSkeletons';
 
 export default function OrderManager() {
-  const { orders, updateOrderStatus, fetchOrders } = useOrders();
+  const { orders, updateOrderStatus, fetchOrders, loading } = useOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -99,7 +100,9 @@ export default function OrderManager() {
       </div>
 
       {/* Responsive Orders View: Mobile Cards & Desktop Table */}
-      {filteredOrders.length > 0 ? (
+      {loading && orders.length === 0 ? (
+        <AdminTableSkeleton rows={6} cols={5} />
+      ) : filteredOrders.length > 0 ? (
         <div className="bg-[#121212] border border-white/15 rounded-3xl overflow-hidden shadow-2xl">
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">

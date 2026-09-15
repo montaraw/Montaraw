@@ -5,6 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useProducts } from '../../context/ProductContext';
 import { defaultBanners } from '../../data/seedData';
 import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
+import HeroBannerSkeleton from '../ui/loading/HeroBannerSkeleton';
 
 const HeroSection = memo(function HeroSection() {
   const { banners, loading } = useProducts();
@@ -23,22 +24,7 @@ const HeroSection = memo(function HeroSection() {
   const next = () => setCurrent((p) => (p + 1) % activeBanners.length);
 
   if (loading && activeBanners.length === 0) {
-    return (
-      <section className="relative min-h-[70vh] md:min-h-[78vh] lg:min-h-[82vh] lg:max-h-[820px] flex items-center overflow-hidden bg-[#0d0d0d] font-inter text-white">
-        <div className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-8 w-full py-8 md:py-10">
-          <div className="max-w-xl space-y-4 animate-pulse">
-            <div className="h-7 w-36 bg-white/15 rounded-full" />
-            <div className="h-16 w-3/4 bg-white/10 rounded-2xl" />
-            <div className="h-4 w-full bg-white/10 rounded" />
-            <div className="h-4 w-2/3 bg-white/10 rounded" />
-            <div className="flex gap-3 pt-3">
-              <div className="h-12 w-44 bg-brand-red/30 rounded-xl" />
-              <div className="h-12 w-44 bg-white/10 rounded-xl" />
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+    return <HeroBannerSkeleton />;
   }
 
   const banner = activeBanners[current] || activeBanners[0] || defaultBanners[0];

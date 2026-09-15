@@ -2,10 +2,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, Trash2, ShoppingBag } from 'lucide-react';
 import ProductCard from '../components/ui/ProductCard';
+import ProductCardSkeleton from '../components/ui/loading/ProductCardSkeleton';
 import { useWishlist } from '../context/WishlistContext';
+import { useProducts } from '../context/ProductContext';
 
 export default function WishlistPage() {
   const { wishlist, clearWishlist } = useWishlist();
+  const { loading } = useProducts();
 
   return (
     <div className="pt-8 md:pt-12 pb-20 min-h-screen bg-brand-black font-inter text-white">
@@ -33,7 +36,11 @@ export default function WishlistPage() {
         </div>
 
         {/* Grid */}
-        {wishlist.length > 0 ? (
+        {loading && wishlist.length === 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            <ProductCardSkeleton count={4} />
+          </div>
+        ) : wishlist.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {wishlist.map((product, i) => (
               <ProductCard key={product.id} product={product} index={i} />

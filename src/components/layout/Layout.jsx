@@ -5,6 +5,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
 import SplashScreen from '../ui/SplashScreen';
+import TopProgressBar from '../ui/loading/TopProgressBar';
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -27,11 +28,19 @@ export default function Layout({ children }) {
   }, []);
 
   if (isAdmin) {
-    return <>{children}</>;
+    return (
+      <>
+        <TopProgressBar />
+        {children}
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-black text-white font-inter">
+      {/* Global Luxury Top Loading Bar */}
+      <TopProgressBar />
+
       {/* Animated First-Visit & Refresh Splash Screen */}
       <SplashScreen />
 

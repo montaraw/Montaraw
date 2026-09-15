@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, Search, CheckCircle2, Clock } from 'lucide-react';
 import { useOrders } from '../context/OrderContext';
+import OrderTrackingSkeleton from '../components/ui/loading/OrderTrackingSkeleton';
 
 export default function TrackOrderPage() {
   const [searchParams] = useSearchParams();
@@ -169,8 +170,15 @@ export default function TrackOrderPage() {
           </div>
         </div>
 
+        {/* Searching Loader State */}
+        {isSearching && (
+          <div className="mt-6">
+            <OrderTrackingSkeleton />
+          </div>
+        )}
+
         {/* Results Card */}
-        {searched && searchedOrder ? (
+        {!isSearching && searched && searchedOrder ? (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}

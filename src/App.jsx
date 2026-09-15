@@ -27,10 +27,10 @@ const ProductManager = lazy(() => import('./components/admin/ProductManager'));
 const CategoryManager = lazy(() => import('./components/admin/CategoryManager'));
 const SettingsManager = lazy(() => import('./components/admin/SettingsManager'));
 
+import { BrandLoader, TopProgressBar } from './components/ui/loading';
+
 const PageLoader = () => (
-  <div className="min-h-[50vh] flex items-center justify-center bg-[#0a0a0a]">
-    <div className="w-8 h-8 rounded-full border-2 border-brand-red border-t-transparent animate-spin" />
-  </div>
+  <BrandLoader text="Loading Atelier Experience..." minHeight="min-h-[60vh]" />
 );
 
 function App() {

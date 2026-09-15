@@ -6,6 +6,7 @@ import ImageGallery from '../components/product/ImageGallery';
 import ProductInfo from '../components/product/ProductInfo';
 import ProductCard from '../components/ui/ProductCard';
 import { useProducts } from '../context/ProductContext';
+import ProductDetailSkeleton from '../components/ui/loading/ProductDetailSkeleton';
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -17,14 +18,7 @@ export default function ProductPage() {
   }, [id]);
 
   if (loading && !product) {
-    return (
-      <div className="pt-24 min-h-screen flex items-center justify-center bg-[#0a0a0a] font-inter">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-2 border-brand-red border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold">Loading Atelier Garment...</p>
-        </div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
@@ -68,7 +62,7 @@ export default function ProductPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <ImageGallery images={product.images || [product.image]} />
+            <ImageGallery images={product.images || [product.image]} videos={product.videos || []} />
           </motion.div>
 
           <motion.div

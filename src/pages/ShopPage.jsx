@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { SlidersHorizontal, Grid3X3, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/ui/ProductCard';
+import ProductCardSkeleton from '../components/ui/loading/ProductCardSkeleton';
 import FilterSidebar from '../components/shop/FilterSidebar';
 import SortDropdown from '../components/shop/SortDropdown';
 import { useProducts } from '../context/ProductContext';
@@ -186,19 +187,7 @@ export default function ShopPage() {
                     : 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
                 }`}
               >
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-2xl bg-[#141414] border border-white/10 p-3 flex flex-col gap-3 animate-pulse"
-                  >
-                    <div className="aspect-[3/4] w-full rounded-xl bg-[#1c1c1c]" />
-                    <div className="space-y-2 px-1">
-                      <div className="h-3 w-16 bg-white/15 rounded" />
-                      <div className="h-4 w-3/4 bg-white/10 rounded" />
-                      <div className="h-4 w-24 bg-white/20 rounded" />
-                    </div>
-                  </div>
-                ))}
+                <ProductCardSkeleton count={gridCols === 3 ? 6 : 8} />
               </div>
             ) : paginatedProducts.length > 0 ? (
               <>

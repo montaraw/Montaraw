@@ -114,6 +114,7 @@ export const createProduct = async (req, res, next) => {
       fit,
       image,
       images,
+      videos,
       sizes,
       colors,
       colorNames,
@@ -130,6 +131,10 @@ export const createProduct = async (req, res, next) => {
 
     const generatedSlug = slug || `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now().toString().slice(-4)}`;
 
+    const rawImages = Array.isArray(images) && images.length ? images : [image];
+    const rawVideos = Array.isArray(videos) ? videos.filter(Boolean) : [];
+    const mergedMedia = Array.from(new Set([...rawImages, ...rawVideos]));
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -142,7 +147,7 @@ export const createProduct = async (req, res, next) => {
         fabric: fabric || '100% Bio-Washed Combed Cotton (240 GSM)',
         fit: fit || 'Relaxed Fit',
         image,
-        images: Array.isArray(images) && images.length ? images : [image],
+        images: mergedMedia,
         sizes: Array.isArray(sizes) && sizes.length ? sizes : ['XS', 'S', 'M', 'L', 'XL'],
         colors: Array.isArray(colors) && colors.length ? colors : ['#000000'],
         colorNames: Array.isArray(colorNames) && colorNames.length ? colorNames : ['Noir Black'],
@@ -181,7 +186,11 @@ export const updateProduct = async (req, res, next) => {
     if (body.fabric !== undefined) cleanData.fabric = body.fabric;
     if (body.fit !== undefined) cleanData.fit = body.fit;
     if (body.image !== undefined) cleanData.image = body.image;
-    if (body.images !== undefined) cleanData.images = Array.isArray(body.images) ? body.images : [body.image];
+    if (body.images !== undefined || body.videos !== undefined) {
+      const rawImgs = Array.isArray(body.images) ? body.images : (body.image ? [body.image] : []);
+      const rawVids = Array.isArray(body.videos) ? body.videos.filter(Boolean) : [];
+      cleanData.images = Array.from(new Set([...rawImgs, ...rawVids]));
+    }
     if (body.sizes !== undefined) cleanData.sizes = Array.isArray(body.sizes) ? body.sizes : [];
     if (body.colors !== undefined) cleanData.colors = Array.isArray(body.colors) ? body.colors : [];
     if (body.colorNames !== undefined) cleanData.colorNames = Array.isArray(body.colorNames) ? body.colorNames : [];

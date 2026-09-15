@@ -3,6 +3,8 @@ import { Plus, Pencil, Trash2, X, Search, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '../../context/ProductContext';
 import MultiImageUploadZone from './MultiImageUploadZone';
+import MultiVideoUploadZone from './MultiVideoUploadZone';
+import { isVideoUrl } from '../../utils/mediaHelper';
 
 const emptyProduct = {
   name: '',
@@ -15,6 +17,7 @@ const emptyProduct = {
   fit: 'Tailored Fit',
   image: '',
   images: [],
+  videos: [],
   sizes: ['XS', 'S', 'M', 'L', 'XL'],
   colors: ['#000000'],
   colorNames: ['Noir Black'],
@@ -56,6 +59,8 @@ export default function ProductManager() {
       return;
     }
 
+    const validVideos = Array.isArray(form.videos) ? form.videos.filter(Boolean) : [];
+
     const data = {
       ...form,
       price: Number(form.price),
@@ -65,6 +70,7 @@ export default function ProductManager() {
       colorNames: colorNamesInput.split(',').map((s) => s.trim()).filter(Boolean),
       image: primaryImg,
       images: validImages,
+      videos: validVideos,
     };
 
     try {
@@ -87,8 +93,12 @@ export default function ProductManager() {
   const handleEdit = (product) => {
     setEditing(product.id);
     const existingImages = Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : (product.image ? [product.image] : []);
+      ? product.images.filter((img) => !isVideoUrl(img))
+      : (product.image && !isVideoUrl(product.image) ? [product.image] : []);
+
+    const existingVideos = Array.isArray(product.videos) && product.videos.length > 0
+      ? product.videos
+      : (Array.isArray(product.images) ? product.images.filter(isVideoUrl) : []);
 
     setForm({
       name: product.name,
@@ -101,6 +111,7 @@ export default function ProductManager() {
       fit: product.fit || '',
       image: product.image || existingImages[0] || '',
       images: existingImages,
+      videos: existingVideos,
       isNew: product.isNew ?? false,
       isSale: product.isSale ?? false,
       rating: product.rating || 4.8,
@@ -366,6 +377,21 @@ export default function ProductManager() {
                     folder="montaraw_atelier/products"
                     label="Product Image Gallery (2-5+ Photos with Auto-Scroll Carousel) *"
                     helpText="Upload 2, 3, 4, 5+ photos. First photo is cover; all photos will auto-scroll on product page and zoom on click."
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <MultiVideoUploadZone
+                    videos={form.videos || []}
+                    onChange={(newVideos) => {
+                      setForm({
+                        ...form,
+                        videos: newVideos,
+                      });
+                    }}
+                    folder="montaraw_atelier/videos"
+                    label="Product Videos & Reels (Multiple Videos Supported)"
+                    helpText="Add MP4/WebM video URLs or upload short showcase reels. Videos are displayed in the product gallery."
                   />
                 </div>
 
