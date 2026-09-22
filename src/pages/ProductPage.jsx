@@ -62,7 +62,7 @@ export default function ProductPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <ImageGallery images={product.images || [product.image]} videos={product.videos || []} />
+            <ImageGallery images={product.images || [product.image]} image={product.image} />
           </motion.div>
 
           <motion.div

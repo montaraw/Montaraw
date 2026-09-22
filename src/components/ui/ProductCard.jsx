@@ -1,55 +1,55 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
-import { Heart, ShoppingBag, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { Heart, ShoppingBag, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
-import { normalizeProductMedia, getEmbedVideoUrl } from '../../utils/mediaHelper';
 
 const ProductCard = memo(function ProductCard({ product }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [quickAdded, setQuickAdded] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
   const touchStartX = useRef(null);
   const wishlisted = isInWishlist(product.id);
 
-  // Normalize media items (images and videos)
-  const mediaList = normalizeProductMedia(
-    product.images && product.images.length > 0 ? product.images : [product.image],
-    product.videos || []
-  );
+  // Clean list of image URLs (filtering out any non-image media)
+  const imageList = (
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : [product.image]
+  ).filter((img) => img && typeof img === 'string' && !img.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i) && !img.includes('youtube.com') && !img.includes('youtu.be') && !img.includes('vimeo.com'));
 
-  const activeMedia = mediaList[activeMediaIndex] || mediaList[0] || { type: 'image', url: product.image };
+  const finalImages = imageList.length > 0 ? imageList : [product.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=600&q=80'];
+  const activeImage = finalImages[activeMediaIndex] || finalImages[0];
 
-  // Continuous auto-sliding for product card media items
+  // Continuous auto-sliding for product card images
   useEffect(() => {
-    if (mediaList.length <= 1) return;
+    if (finalImages.length <= 1) return;
 
     const interval = setInterval(() => {
-      setActiveMediaIndex((prev) => (prev + 1) % mediaList.length);
+      setActiveMediaIndex((prev) => (prev + 1) % finalImages.length);
     }, 3200);
 
     return () => clearInterval(interval);
-  }, [mediaList.length]);
+  }, [finalImages.length]);
 
   const handlePrevMedia = useCallback(
     (e) => {
       e.preventDefault();
       e.stopPropagation();
-      setActiveMediaIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
+      setActiveMediaIndex((prev) => (prev - 1 + finalImages.length) % finalImages.length);
     },
-    [mediaList.length]
+    [finalImages.length]
   );
 
   const handleNextMedia = useCallback(
     (e) => {
       e.preventDefault();
       e.stopPropagation();
-      setActiveMediaIndex((prev) => (prev + 1) % mediaList.length);
+      setActiveMediaIndex((prev) => (prev + 1) % finalImages.length);
     },
-    [mediaList.length]
+    [finalImages.length]
   );
 
   // Touch swipe support for mobile
@@ -64,10 +64,10 @@ const ProductCard = memo(function ProductCard({ product }) {
     if (Math.abs(diff) > 35) {
       if (diff > 0) {
         // swipe left -> next
-        setActiveMediaIndex((prev) => (prev + 1) % mediaList.length);
+        setActiveMediaIndex((prev) => (prev + 1) % finalImages.length);
       } else {
         // swipe right -> prev
-        setActiveMediaIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
+        setActiveMediaIndex((prev) => (prev - 1 + finalImages.length) % finalImages.length);
       }
     }
     touchStartX.current = null;
@@ -103,63 +103,30 @@ const ProductCard = memo(function ProductCard({ product }) {
   return (
     <div
       className="group font-inter w-full min-w-0 transition-transform duration-300 select-none"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-      }}
     >
       <Link to={`/product/${product.id}`} className="block w-full min-w-0">
-        {/* Interactive Media Carousel Container with Fixed 3:4 Aspect Ratio (Zero CLS) */}
+        {/* Interactive Image Carousel Container with Fixed 3:4 Aspect Ratio (Zero CLS) */}
         <div
           className="relative aspect-[3/4] bg-[#141414] rounded-2xl overflow-hidden mb-3 border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-lg"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Active Media Renderer (Image or Video) */}
-          {activeMedia.type === 'video' ? (
-            <div className="w-full h-full bg-black flex items-center justify-center relative">
-              {activeMedia.url.includes('youtube.com') ||
-              activeMedia.url.includes('youtu.be') ||
-              activeMedia.url.includes('vimeo.com') ? (
-                <iframe
-                  src={getEmbedVideoUrl(activeMedia.url)}
-                  title={product.name}
-                  className="w-full h-full pointer-events-none opacity-90"
-                />
-              ) : (
-                <video
-                  src={activeMedia.url}
-                  autoPlay={isHovered}
-                  muted
-                  loop
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-              )}
-
-              {/* Video Badge */}
-              <div className="absolute top-2.5 right-12 z-10 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-brand-red border border-white/10 text-[9px] font-bold uppercase flex items-center gap-1 shadow-md pointer-events-none">
-                <Play size={9} fill="currentColor" />
-                <span>Reel</span>
-              </div>
-            </div>
-          ) : (
-            <img
-              key={activeMedia.url}
-              src={getOptimizedImageUrl(activeMedia.url, { width: 600, quality: 80 })}
-              alt={product.name || 'Montaraw Product'}
-              width="300"
-              height="400"
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src =
-                  'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=600&q=80';
-              }}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          )}
+          {/* Active Product Image */}
+          <img
+            key={activeImage}
+            src={getOptimizedImageUrl(activeImage, { width: 600, quality: 80 })}
+            alt={product.name || 'Montaraw Product'}
+            width="300"
+            height="400"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src =
+                'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=600&q=80';
+            }}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
 
           {/* Badges Overlay */}
           <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 pointer-events-none">
@@ -191,7 +158,7 @@ const ProductCard = memo(function ProductCard({ product }) {
           </button>
 
           {/* Media Slider Left / Right Navigation Chevrons */}
-          {mediaList.length > 1 && (
+          {finalImages.length > 1 && (
             <>
               <button
                 type="button"
@@ -212,7 +179,7 @@ const ProductCard = memo(function ProductCard({ product }) {
 
               {/* Bottom Dash Progress Indicators */}
               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1 z-10 pointer-events-none">
-                {mediaList.map((m, idx) => (
+                {finalImages.map((m, idx) => (
                   <span
                     key={idx}
                     className={`h-1 rounded-full transition-all duration-300 ${

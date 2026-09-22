@@ -1,20 +1,34 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ZoomIn, X, Play } from 'lucide-react';
-import { normalizeProductMedia, getEmbedVideoUrl } from '../../utils/mediaHelper';
+import { ChevronLeft, ChevronRight, ZoomIn, X } from 'lucide-react';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 
-export default function ImageGallery({ images = [], videos = [] }) {
+export default function ImageGallery({ images = [], image = '' }) {
   const [active, setActive] = useState(0);
   const [zoomed, setZoomed] = useState(false);
 
-  // Normalize media items into unified list of images and videos
-  const mediaList = normalizeProductMedia(images, videos);
-  const activeMedia = mediaList[active] || mediaList[0];
+  // Clean list of images
+  const rawList = Array.isArray(images) && images.length > 0 ? images : (image ? [image] : []);
+  const imageList = rawList.filter(
+    (img) =>
+      img &&
+      typeof img === 'string' &&
+      !img.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i) &&
+      !img.includes('youtube.com') &&
+      !img.includes('youtu.be') &&
+      !img.includes('vimeo.com')
+  );
+
+  const finalImages =
+    imageList.length > 0
+      ? imageList
+      : ['https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&q=80'];
+  const activeImage = finalImages[active] || finalImages[0];
 
   const touchStartX = useRef(null);
 
-  const prev = () => setActive((p) => (p - 1 + mediaList.length) % mediaList.length);
-  const next = () => setActive((p) => (p + 1) % mediaList.length);
+  const prev = () => setActive((p) => (p - 1 + finalImages.length) % finalImages.length);
+  const next = () => setActive((p) => (p + 1) % finalImages.length);
 
   // Touch swipe support for mobile
   const handleTouchStart = (e) => {
@@ -32,16 +46,16 @@ export default function ImageGallery({ images = [], videos = [] }) {
     touchStartX.current = null;
   };
 
-  // Continuous auto-slide slideshow every 3.5 seconds (excluding when video is active or in fullscreen zoom)
+  // Continuous auto-slide slideshow every 3.5 seconds (excluding when in fullscreen zoom)
   useEffect(() => {
-    if (mediaList.length <= 1 || zoomed || activeMedia?.type === 'video') return;
+    if (finalImages.length <= 1 || zoomed) return;
 
     const interval = setInterval(() => {
-      setActive((prevIdx) => (prevIdx + 1) % mediaList.length);
+      setActive((prevIdx) => (prevIdx + 1) % finalImages.length);
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [mediaList.length, zoomed, activeMedia?.type]);
+  }, [finalImages.length, zoomed]);
 
   // Keyboard navigation for zoomed modal
   useEffect(() => {
@@ -55,97 +69,51 @@ export default function ImageGallery({ images = [], videos = [] }) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zoomed, mediaList.length]);
-
-  if (!mediaList.length) {
-    return (
-      <div className="aspect-[3/4] bg-[#121212] rounded-3xl border border-white/10 flex items-center justify-center text-gray-500">
-        No media available
-      </div>
-    );
-  }
+  }, [zoomed, finalImages.length]);
 
   return (
     <div className="space-y-4 font-inter">
-      {/* Main Showcase (Image or Video) */}
+      {/* Main Showcase Image */}
       <div
         className="relative aspect-[3/4] bg-[#111111] rounded-3xl overflow-hidden border border-white/15 group shadow-2xl"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         <AnimatePresence mode="wait">
-          {activeMedia?.type === 'video' ? (
-            <motion.div
-              key={`video-${active}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full h-full bg-black flex items-center justify-center relative"
-            >
-              {activeMedia.url.includes('youtube.com') ||
-              activeMedia.url.includes('youtu.be') ||
-              activeMedia.url.includes('vimeo.com') ? (
-                <iframe
-                  src={getEmbedVideoUrl(activeMedia.url)}
-                  title="Product video showcase"
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <video
-                  src={activeMedia.url}
-                  controls
-                  playsInline
-                  autoPlay
-                  muted
-                  loop
-                  className="w-full h-full object-cover"
-                />
-              )}
+          <motion.div
+            key={`img-${active}-${activeImage}`}
+            initial={{ opacity: 0, scale: 1.03 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="w-full h-full cursor-zoom-in"
+            onClick={() => setZoomed(true)}
+          >
+            <img
+              src={getOptimizedImageUrl(activeImage, { width: 1000, quality: 85 })}
+              alt="Product perspective"
+              className="w-full h-full object-cover"
+              loading="eager"
+            />
 
-              {/* Video Type Indicator Badge */}
-              <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-brand-red/40 text-brand-red font-mono text-[11px] font-bold flex items-center gap-1.5 shadow-lg pointer-events-none">
-                <Film size={12} />
-                <span>VIDEO DEMO</span>
+            {/* Zoom Hint Icon */}
+            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+              <div className="w-10 h-10 flex items-center justify-center bg-black/75 backdrop-blur-md rounded-2xl border border-white/20 text-white shadow-xl">
+                <ZoomIn size={18} />
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key={`img-${active}`}
-              initial={{ opacity: 0, scale: 1.04 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="w-full h-full cursor-zoom-in"
-              onClick={() => setZoomed(true)}
-            >
-              <img
-                src={activeMedia?.url}
-                alt="Product perspective"
-                className="w-full h-full object-cover"
-              />
-
-              {/* Zoom Hint Icon */}
-              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                <div className="w-10 h-10 flex items-center justify-center bg-black/75 backdrop-blur-md rounded-2xl border border-white/20 text-white shadow-xl">
-                  <ZoomIn size={18} />
-                </div>
-              </div>
-            </motion.div>
-          )}
+            </div>
+          </motion.div>
         </AnimatePresence>
 
         {/* Counter Badge */}
-        {mediaList.length > 1 && (
+        {finalImages.length > 1 && (
           <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-white font-mono text-[11px] font-bold pointer-events-none">
-            {active + 1} / {mediaList.length}
+            {active + 1} / {finalImages.length}
           </div>
         )}
 
         {/* Previous / Next Arrows */}
-        {mediaList.length > 1 && (
+        {finalImages.length > 1 && (
           <>
             <button
               type="button"
@@ -172,7 +140,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
 
             {/* Bottom Dots Indicator */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
-              {mediaList.map((item, i) => (
+              {finalImages.map((item, i) => (
                 <button
                   key={i}
                   type="button"
@@ -185,7 +153,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
                       ? 'w-6 bg-brand-red shadow-sm'
                       : 'w-1.5 bg-white/40 hover:bg-white'
                   }`}
-                  aria-label={`Go to media ${i + 1}`}
+                  aria-label={`Go to image ${i + 1}`}
                 />
               ))}
             </div>
@@ -193,10 +161,10 @@ export default function ImageGallery({ images = [], videos = [] }) {
         )}
       </div>
 
-      {/* Thumbnails Gallery Strip (Photos & Videos) */}
-      {mediaList.length > 1 && (
+      {/* Thumbnails Gallery Strip */}
+      {finalImages.length > 1 && (
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
-          {mediaList.map((item, i) => (
+          {finalImages.map((imgUrl, i) => (
             <button
               key={i}
               type="button"
@@ -207,36 +175,12 @@ export default function ImageGallery({ images = [], videos = [] }) {
                   : 'border-white/15 hover:border-white/40 opacity-70 hover:opacity-100'
               }`}
             >
-              {item.type === 'video' ? (
-                <div className="w-full h-full bg-[#161616] flex flex-col items-center justify-center relative">
-                  {item.url.includes('youtube.com') || item.url.includes('youtu.be') ? (
-                    <div className="w-full h-full bg-black/80 flex items-center justify-center">
-                      <Film size={20} className="text-brand-red" />
-                    </div>
-                  ) : (
-                    <video
-                      src={item.url}
-                      className="w-full h-full object-cover opacity-60"
-                      muted
-                      playsInline
-                    />
-                  )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
-                    <div className="w-7 h-7 rounded-full bg-brand-red/90 text-white flex items-center justify-center shadow-md">
-                      <Play size={12} fill="currentColor" className="ml-0.5" />
-                    </div>
-                    <span className="text-[9px] font-bold text-white uppercase mt-1 tracking-wider">
-                      Video
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <img
-                  src={item.url}
-                  alt=""
-                  className="w-full h-full object-cover bg-black"
-                />
-              )}
+              <img
+                src={getOptimizedImageUrl(imgUrl, { width: 250, quality: 75 })}
+                alt={`Thumbnail ${i + 1}`}
+                className="w-full h-full object-cover bg-black"
+                loading="lazy"
+              />
             </button>
           ))}
         </div>
@@ -255,7 +199,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
             {/* Top Toolbar */}
             <div className="absolute top-6 right-6 flex items-center gap-3 z-30">
               <span className="px-3.5 py-1.5 rounded-full bg-white/10 text-white font-mono text-xs font-bold">
-                {active + 1} / {mediaList.length}
+                {active + 1} / {finalImages.length}
               </span>
               <button
                 type="button"
@@ -268,7 +212,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
             </div>
 
             {/* Navigation Buttons in Lightbox */}
-            {mediaList.length > 1 && (
+            {finalImages.length > 1 && (
               <>
                 <button
                   type="button"
@@ -295,7 +239,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
               </>
             )}
 
-            {/* Zoomed Media Display */}
+            {/* Zoomed Image Display */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -304,34 +248,11 @@ export default function ImageGallery({ images = [], videos = [] }) {
               className="relative max-w-[90vw] max-h-[85vh] overflow-hidden rounded-3xl border border-white/20 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {activeMedia?.type === 'video' ? (
-                activeMedia.url.includes('youtube.com') ||
-                activeMedia.url.includes('youtu.be') ||
-                activeMedia.url.includes('vimeo.com') ? (
-                  <div className="w-[85vw] max-w-4xl aspect-video rounded-3xl overflow-hidden bg-black">
-                    <iframe
-                      src={getEmbedVideoUrl(activeMedia.url)}
-                      title="Fullscreen video"
-                      className="w-full h-full"
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : (
-                  <video
-                    src={activeMedia.url}
-                    controls
-                    autoPlay
-                    className="w-full max-h-[85vh] object-contain rounded-3xl bg-black"
-                  />
-                )
-              ) : (
-                <img
-                  src={activeMedia?.url}
-                  alt="Zoomed product inspection"
-                  className="w-full h-full object-contain max-h-[85vh]"
-                />
-              )}
+              <img
+                src={activeImage}
+                alt="Zoomed product inspection"
+                className="w-full h-full object-contain max-h-[85vh]"
+              />
             </motion.div>
           </motion.div>
         )}
