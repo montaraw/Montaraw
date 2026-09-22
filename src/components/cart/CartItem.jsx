@@ -26,9 +26,9 @@ export default function CartItem({ item }) {
         </Link>
 
         <div className="flex items-center gap-3 text-xs text-gray-300 mt-1">
-          <span>Size: <strong className="text-white">{item.selectedSize}</strong></span>
-          {item.selectedColorName && (
-            <span>Color: <strong className="text-white">{item.selectedColorName}</strong></span>
+          <span>Size: <strong className="text-white">{item.selectedSize || item.size || 'Standard'}</strong></span>
+          {(item.selectedColorName || item.colorName || item.colorNames?.[0]) && (
+            <span>Color: <strong className="text-white">{item.selectedColorName || item.colorName || item.colorNames?.[0]}</strong></span>
           )}
         </div>
 

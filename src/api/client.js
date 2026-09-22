@@ -98,7 +98,12 @@ export const api = {
   updateProfile: (data) => request('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Coupons
-  validateCoupon: (code, subtotal) => request(`/coupons/validate?code=${encodeURIComponent(code)}&subtotal=${subtotal}`),
+  getCoupons: () => request('/coupons', { isAdmin: true }),
+  createCoupon: (data) => request('/coupons', { method: 'POST', body: JSON.stringify(data), isAdmin: true }),
+  updateCoupon: (id, data) => request(`/coupons/${id}`, { method: 'PUT', body: JSON.stringify(data), isAdmin: true }),
+  deleteCoupon: (id) => request(`/coupons/${id}`, { method: 'DELETE', isAdmin: true }),
+  validateCoupon: (code, subtotal, customer = '') =>
+    request(`/coupons/validate?code=${encodeURIComponent(code)}&subtotal=${subtotal}&customer=${encodeURIComponent(customer)}`),
 
   // Settings
   getSettings: () => request('/settings'),

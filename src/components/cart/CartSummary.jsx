@@ -1,40 +1,72 @@
 import { useCart } from '../../context/CartContext';
-import { ShieldCheck, Truck, ArrowRight, Lock } from 'lucide-react';
+import { Truck, ArrowRight, Lock, MapPin, Receipt, ChevronDown } from 'lucide-react';
+import { STATE_ZONES } from '../../utils/taxAndShippingHelper';
 
 export default function CartSummary({ onCheckoutClick }) {
-  const { cartSubtotal, cartDiscount, shippingCost, cartTotal, appliedCoupon, cartCount } = useCart();
-  const threshold = 999;
-  const remainingForFreeShipping = Math.max(0, threshold - cartSubtotal);
+  const {
+    cartSubtotal,
+    cartDiscount,
+    clothingGst,
+    gstInfo,
+    shippingCost,
+    deliveryInfo,
+    shippingState,
+    setShippingState,
+    cartTotal,
+    appliedCoupon,
+    cartCount,
+  } = useCart();
+
+  const stateOptions = Object.keys(STATE_ZONES).filter((s) => s !== 'Other');
 
   return (
     <div className="bg-[#121212] border border-white/15 rounded-2xl p-5 space-y-4 shadow-xl font-inter text-white">
-      <h3 className="text-sm font-bold text-white uppercase">
-        Order Summary
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-white uppercase">
+          Order Summary
+        </h3>
+        <span className="text-[11px] text-gray-400 font-medium">
+          {cartCount} item{cartCount !== 1 ? 's' : ''}
+        </span>
+      </div>
 
-      {/* Free Shipping Progress Indicator */}
+      {/* Destination Delivery Zone Selector */}
       <div className="p-3 bg-[#181818] border border-white/15 rounded-xl space-y-2">
         <div className="flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1.5 text-white font-medium">
-            <Truck size={14} className="text-brand-red" />
-            {remainingForFreeShipping === 0 ? 'Free Shipping Unlocked!' : `Add ₹${remainingForFreeShipping.toLocaleString()} for Free Shipping`}
+          <span className="flex items-center gap-1.5 text-white font-medium text-[11px]">
+            <MapPin size={13} className="text-brand-red" />
+            <span>Delivery State / Region:</span>
           </span>
-          <span className="text-[10px] font-bold text-white">
-            {remainingForFreeShipping === 0 ? '100%' : `${Math.min(100, Math.round((cartSubtotal / threshold) * 100))}%`}
+          <span className="text-[10px] font-bold text-gray-300">
+            {deliveryInfo.estimatedDays}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-brand-red transition-all duration-500 rounded-full"
-            style={{ width: `${Math.min(100, (cartSubtotal / threshold) * 100)}%` }}
-          />
+
+        <div className="relative">
+          <select
+            value={shippingState}
+            onChange={(e) => setShippingState(e.target.value)}
+            className="w-full bg-[#121212] border border-white/20 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-brand-red font-medium appearance-none pr-8 cursor-pointer"
+          >
+            {stateOptions.map((st) => (
+              <option key={st} value={st} className="bg-[#181818] text-white">
+                {st}
+              </option>
+            ))}
+            <option value="Other" className="bg-[#181818] text-white">Other Indian Territory</option>
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        </div>
+        <div className="flex items-center justify-between text-[10px] text-gray-400 pt-0.5">
+          <span>{deliveryInfo.zoneName}</span>
+          <span className="font-bold text-white">₹{shippingCost} Standard Courier</span>
         </div>
       </div>
 
       {/* Price Lines */}
       <div className="space-y-2.5 text-xs">
         <div className="flex justify-between text-gray-200">
-          <span>Subtotal ({cartCount} item{cartCount !== 1 ? 's' : ''})</span>
+          <span>Items Subtotal</span>
           <span className="text-white font-bold">₹{cartSubtotal.toLocaleString()}</span>
         </div>
 
@@ -50,10 +82,28 @@ export default function CartSummary({ onCheckoutClick }) {
           </div>
         )}
 
+        {/* Real Apparel GST on Clothes */}
         <div className="flex justify-between text-gray-200">
-          <span>Standard Delivery</span>
-          <span className={shippingCost === 0 ? 'text-green-400 font-bold' : 'text-white font-bold'}>
-            {shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}
+          <div className="flex items-center gap-1">
+            <Receipt size={12} className="text-gray-400" />
+            <span>Apparel GST ({gstInfo.effectiveRate})</span>
+          </div>
+          <div className="text-right">
+            <span className="text-white font-bold">₹{clothingGst.toLocaleString()}</span>
+            <span className="text-[10px] text-gray-400 block">
+              {gstInfo.isInterState ? 'IGST' : 'CGST + SGST'}
+            </span>
+          </div>
+        </div>
+
+        {/* Real Distance-Wise Courier Shipping */}
+        <div className="flex justify-between text-gray-200">
+          <div className="flex items-center gap-1">
+            <Truck size={12} className="text-brand-red" />
+            <span>Courier Delivery ({shippingState})</span>
+          </div>
+          <span className="text-white font-bold">
+            ₹{shippingCost.toLocaleString()}
           </span>
         </div>
       </div>
@@ -62,9 +112,14 @@ export default function CartSummary({ onCheckoutClick }) {
 
       {/* Grand Total */}
       <div className="flex justify-between items-baseline">
-        <span className="text-xs font-bold text-white uppercase">
-          Total Payable
-        </span>
+        <div>
+          <span className="text-xs font-bold text-white uppercase block">
+            Total Payable
+          </span>
+          <span className="text-[10px] text-gray-400">
+            (Includes Garment Tax & Courier Delivery)
+          </span>
+        </div>
         <span className="text-xl font-black text-white">
           ₹{cartTotal.toLocaleString()}
         </span>
@@ -79,11 +134,7 @@ export default function CartSummary({ onCheckoutClick }) {
         <span>Proceed to Checkout</span>
         <ArrowRight size={14} />
       </button>
-
-      <div className="flex items-center justify-center gap-2 text-[11px] text-gray-300 pt-1">
-        <ShieldCheck size={14} className="text-green-400" />
-        <span>256-Bit SSL Encrypted Secure Checkout</span>
-      </div>
     </div>
   );
 }
+

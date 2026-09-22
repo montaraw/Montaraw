@@ -25,6 +25,7 @@ const OrderManager = lazy(() => import('./components/admin/OrderManager'));
 const BannerManager = lazy(() => import('./components/admin/BannerManager'));
 const ProductManager = lazy(() => import('./components/admin/ProductManager'));
 const CategoryManager = lazy(() => import('./components/admin/CategoryManager'));
+const CouponManager = lazy(() => import('./components/admin/CouponManager'));
 const SettingsManager = lazy(() => import('./components/admin/SettingsManager'));
 
 import { BrandLoader, TopProgressBar } from './components/ui/loading';
@@ -66,6 +67,7 @@ function App() {
                 <Route path="banners" element={<BannerManager />} />
                 <Route path="products" element={<ProductManager />} />
                 <Route path="categories" element={<CategoryManager />} />
+                <Route path="coupons" element={<CouponManager />} />
                 <Route path="settings" element={<SettingsManager />} />
               </Route>
             </Routes>

@@ -160,14 +160,17 @@ model OrderItem {
 }
 
 model Coupon {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  discount  Float
-  type      String   @default("percentage") // "percentage" | "fixed"
-  minOrder  Float    @default(0)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  code            String   @unique
+  discount        Float
+  type            String   @default("percentage") // "percentage" | "fixed"
+  minOrder        Float    @default(0)
+  maxDiscount     Float?
+  targetCustomers String?  @default("all") // "all" or comma-separated emails / phone numbers
+  description     String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([code, active])
 }

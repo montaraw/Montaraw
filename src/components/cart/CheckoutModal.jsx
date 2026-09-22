@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldCheck, CreditCard, Banknote, QrCode, ArrowRight, UserCheck, ChevronDown } from 'lucide-react';
+import { X, ShieldCheck, CreditCard, Banknote, QrCode, ArrowRight, UserCheck, ChevronDown, Receipt, Truck, MapPin } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useOrders } from '../../context/OrderContext';
 import { useAuth } from '../../context/AuthContext';
+import { STATE_ZONES } from '../../utils/taxAndShippingHelper';
 
 export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
-  const { cart, cartSubtotal, cartDiscount, shippingCost, cartTotal, appliedCoupon, clearCart } = useCart();
+  const {
+    cart,
+    cartSubtotal,
+    cartDiscount,
+    clothingGst,
+    gstInfo,
+    shippingCost,
+    deliveryInfo,
+    shippingState,
+    setShippingState,
+    cartTotal,
+    appliedCoupon,
+    clearCart,
+  } = useCart();
   const { createOrder } = useOrders();
   const { customerUser } = useAuth();
 
@@ -17,24 +31,28 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
     phone: '',
     address: '',
     city: '',
-    state: 'Maharashtra',
+    state: shippingState || 'Uttar Pradesh',
     pincode: '',
   });
 
   // Pre-fill from logged in customer
   useEffect(() => {
     if (customerUser) {
-      setFormData({
-        fullName: customerUser.fullName || '',
-        email: customerUser.email || '',
-        phone: customerUser.phone || '',
-        address: customerUser.address || '',
-        city: customerUser.city || '',
-        state: customerUser.state || 'Maharashtra',
-        pincode: customerUser.pincode || '',
-      });
+      setFormData((prev) => ({
+        ...prev,
+        fullName: customerUser.fullName || prev.fullName,
+        email: customerUser.email || prev.email,
+        phone: customerUser.phone || prev.phone,
+        address: customerUser.address || prev.address,
+        city: customerUser.city || prev.city,
+        state: customerUser.state || shippingState || 'Uttar Pradesh',
+        pincode: customerUser.pincode || prev.pincode,
+      }));
+      if (customerUser.state) {
+        setShippingState(customerUser.state);
+      }
     }
-  }, [customerUser, isOpen]);
+  }, [customerUser, isOpen, setShippingState]);
 
   const [paymentMethod, setPaymentMethod] = useState('UPI / Online');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,6 +76,7 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
   const handleNext = (e) => {
     e.preventDefault();
     if (validateStep1()) {
+      setShippingState(formData.state);
       setStep(2);
     }
   };
@@ -81,8 +100,11 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
         })),
         subtotal: cartSubtotal,
         discount: cartDiscount,
-        couponCode: appliedCoupon?.code || null,
+        tax: clothingGst,
+        gstBreakdown: gstInfo,
         shipping: shippingCost,
+        deliveryZone: deliveryInfo.zoneName,
+        couponCode: appliedCoupon?.code || null,
         total: cartTotal,
         paymentMethod,
       };
@@ -279,29 +301,24 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                   {/* State */}
                   <div>
                     <label className="block font-bold text-white uppercase text-[11px] sm:text-xs mb-1">
-                      State *
+                      State / Destination Region *
                     </label>
                     <div className="relative">
                       <select
                         value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        onChange={(e) => {
+                          const newState = e.target.value;
+                          setFormData({ ...formData, state: newState });
+                          setShippingState(newState);
+                        }}
                         className="w-full bg-[#181818] border border-white/20 text-white text-xs sm:text-[13px] px-3.5 py-2.5 sm:py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold uppercase appearance-none pr-8 cursor-pointer"
                       >
-                        <option value="Maharashtra">Maharashtra</option>
-                        <option value="Delhi">Delhi / NCR</option>
-                        <option value="Karnataka">Karnataka</option>
-                        <option value="Uttar Pradesh">Uttar Pradesh</option>
-                        <option value="Gujarat">Gujarat</option>
-                        <option value="Telangana">Telangana</option>
-                        <option value="Tamil Nadu">Tamil Nadu</option>
-                        <option value="West Bengal">West Bengal</option>
-                        <option value="Rajasthan">Rajasthan</option>
-                        <option value="Bihar">Bihar</option>
-                        <option value="Punjab">Punjab</option>
-                        <option value="Haryana">Haryana</option>
-                        <option value="Madhya Pradesh">Madhya Pradesh</option>
-                        <option value="Kerala">Kerala</option>
-                        <option value="Other">Other State</option>
+                        {Object.keys(STATE_ZONES).filter((s) => s !== 'Other').map((st) => (
+                          <option key={st} value={st} className="bg-[#181818] text-white">
+                            {st}
+                          </option>
+                        ))}
+                        <option value="Other" className="bg-[#181818] text-white">Other Indian Territory</option>
                       </select>
                       <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -317,6 +334,9 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                     <span className="text-white font-bold block truncate">{formData.fullName} ({formData.phone})</span>
                     <span className="text-gray-300 text-[11px] sm:text-xs block mt-0.5 line-clamp-2">
                       {formData.address}, {formData.city}, {formData.state} - {formData.pincode}
+                    </span>
+                    <span className="text-brand-red font-bold text-[10px] uppercase block mt-1">
+                      {deliveryInfo.zoneName} • {deliveryInfo.estimatedDays}
                     </span>
                   </div>
                   <button
@@ -338,19 +358,19 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                     {
                       id: 'UPI / Online',
                       title: 'Instant UPI (GPay, PhonePe, Paytm, QR)',
-                      desc: 'Fastest dispatch with instant confirmation',
+                      desc: 'Fastest dispatch with instant order confirmation',
                       icon: QrCode,
                     },
                     {
                       id: 'Credit / Debit Card',
-                      title: 'Credit / Debit Card (Visa, Mastercard)',
-                      desc: 'Secure 256-bit encrypted gateway',
+                      title: 'Credit / Debit Card (Visa, Mastercard, RuPay)',
+                      desc: 'Secure encrypted banking payment gateway',
                       icon: CreditCard,
                     },
                     {
                       id: 'Cash on Delivery',
                       title: 'Cash on Delivery (COD)',
-                      desc: 'Pay upon delivery at your doorstep',
+                      desc: 'Pay in cash upon doorstep delivery',
                       icon: Banknote,
                     },
                   ].map((method) => {
@@ -390,27 +410,44 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                   })}
                 </div>
 
-                {/* Order Summary Recap */}
-                <div className="p-3.5 sm:p-4 bg-[#181818] border border-white/15 rounded-2xl space-y-1.5 text-xs">
+                {/* Order Summary Detailed Breakdown */}
+                <div className="p-3.5 sm:p-4 bg-[#181818] border border-white/15 rounded-2xl space-y-2 text-xs">
                   <div className="flex justify-between text-gray-300">
-                    <span>Cart Subtotal ({cart.length} items):</span>
+                    <span>Items Subtotal ({cart.length} items):</span>
                     <span className="text-white font-bold">₹{cartSubtotal.toLocaleString()}</span>
                   </div>
+
                   {cartDiscount > 0 && (
                     <div className="flex justify-between text-green-400">
-                      <span>Discount ({appliedCoupon?.code}):</span>
+                      <span>Voucher Discount ({appliedCoupon?.code}):</span>
                       <span className="font-bold">-₹{cartDiscount.toLocaleString()}</span>
                     </div>
                   )}
+
+                  {/* Apparel GST */}
                   <div className="flex justify-between text-gray-300">
-                    <span>Delivery Shipping:</span>
-                    <span className={shippingCost === 0 ? 'text-green-400 font-bold' : 'text-white font-bold'}>
-                      {shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <Receipt size={12} className="text-gray-400" />
+                      <span>Apparel GST ({gstInfo.breakdownText}):</span>
+                    </div>
+                    <span className="text-white font-bold">₹{clothingGst.toLocaleString()}</span>
                   </div>
-                  <div className="pt-2 border-t border-white/15 flex justify-between items-center text-sm">
-                    <span className="font-bold text-white uppercase">Grand Total:</span>
-                    <span className="font-black text-base sm:text-lg text-white">₹{cartTotal.toLocaleString()}</span>
+
+                  {/* Distance Delivery */}
+                  <div className="flex justify-between text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Truck size={12} className="text-brand-red" />
+                      <span>Courier Shipping ({formData.state}):</span>
+                    </div>
+                    <span className="text-white font-bold">₹{shippingCost.toLocaleString()}</span>
+                  </div>
+
+                  <div className="pt-2.5 border-t border-white/15 flex justify-between items-center text-sm">
+                    <div>
+                      <span className="font-bold text-white uppercase block">Total Payable:</span>
+                      <span className="text-[10px] text-gray-400">Includes all taxes & destination shipping</span>
+                    </div>
+                    <span className="font-black text-lg sm:text-xl text-white">₹{cartTotal.toLocaleString()}</span>
                   </div>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import {
   Package,
   FolderOpen,
   Image,
+  Tag,
   Settings,
   LogOut,
   ChevronLeft,
@@ -26,6 +27,7 @@ export default function AdminSidebar({ isOpen, onToggle }) {
     { label: 'Orders', icon: Truck, path: '/admin/orders', badge: pendingOrders > 0 ? pendingOrders : null },
     { label: 'Products', icon: Package, path: '/admin/products' },
     { label: 'Categories', icon: FolderOpen, path: '/admin/categories' },
+    { label: 'Coupons', icon: Tag, path: '/admin/coupons' },
     { label: 'Banners', icon: Image, path: '/admin/banners' },
     { label: 'Settings', icon: Settings, path: '/admin/settings' },
   ];

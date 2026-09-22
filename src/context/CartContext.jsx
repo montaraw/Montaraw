@@ -1,11 +1,14 @@
-import { createContext, useContext, useCallback, useMemo } from 'react';
+import { createContext, useContext, useCallback, useMemo, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { calculateClothingGst, calculateDeliveryFee } from '../utils/taxAndShippingHelper';
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useLocalStorage('montaraw_cart', []);
   const [appliedCoupon, setAppliedCoupon] = useLocalStorage('montaraw_coupon', null);
+  const [shippingState, setShippingState] = useLocalStorage('montaraw_shipping_state', 'Uttar Pradesh');
+  const [deliveryType, setDeliveryType] = useState('standard'); // 'standard' | 'express'
 
   const addToCart = useCallback((product, size, color, quantity = 1) => {
     setCart((prev) => {
@@ -59,28 +62,50 @@ export function CartProvider({ children }) {
   );
 
   const cartSubtotal = useMemo(
-    () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    () => cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0),
     [cart]
   );
 
   const cartDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
+    let disc = 0;
     if (appliedCoupon.type === 'percentage') {
-      return Math.round((cartSubtotal * appliedCoupon.discount) / 100);
+      disc = (cartSubtotal * appliedCoupon.discount) / 100;
+      if (appliedCoupon.maxDiscount && appliedCoupon.maxDiscount > 0 && disc > appliedCoupon.maxDiscount) {
+        disc = appliedCoupon.maxDiscount;
+      }
+    } else {
+      disc = Math.min(appliedCoupon.discount, cartSubtotal);
     }
-    return appliedCoupon.discount;
+    return Math.round(disc);
   }, [appliedCoupon, cartSubtotal]);
 
-  const cartTotal = useMemo(() => {
-    const afterDiscount = cartSubtotal - cartDiscount;
-    const shipping = cartSubtotal >= 999 ? 0 : 99;
-    return afterDiscount + shipping;
-  }, [cartSubtotal, cartDiscount]);
+  const taxableAmount = useMemo(
+    () => Math.max(0, cartSubtotal - cartDiscount),
+    [cartSubtotal, cartDiscount]
+  );
+
+  // Clothing GST calculations (5% / 12% with CGST/SGST/IGST breakdown)
+  const gstInfo = useMemo(
+    () => calculateClothingGst(cart, taxableAmount, shippingState),
+    [cart, taxableAmount, shippingState]
+  );
+
+  // Zone/distance-wise delivery fee calculation
+  const deliveryInfo = useMemo(
+    () => calculateDeliveryFee(shippingState, deliveryType),
+    [shippingState, deliveryType]
+  );
 
   const shippingCost = useMemo(
-    () => (cartSubtotal >= 999 ? 0 : 99),
-    [cartSubtotal]
+    () => (cart.length > 0 ? deliveryInfo.deliveryFee : 0),
+    [cart.length, deliveryInfo]
   );
+
+  const cartTotal = useMemo(() => {
+    if (cart.length === 0) return 0;
+    return taxableAmount + gstInfo.totalGst + shippingCost;
+  }, [cart.length, taxableAmount, gstInfo.totalGst, shippingCost]);
 
   const value = useMemo(
     () => ({
@@ -88,8 +113,16 @@ export function CartProvider({ children }) {
       cartCount,
       cartSubtotal,
       cartDiscount,
-      cartTotal,
+      taxableAmount,
+      gstInfo,
+      clothingGst: gstInfo.totalGst,
+      shippingState,
+      setShippingState,
+      deliveryType,
+      setDeliveryType,
+      deliveryInfo,
       shippingCost,
+      cartTotal,
       appliedCoupon,
       addToCart,
       removeFromCart,
@@ -98,7 +131,28 @@ export function CartProvider({ children }) {
       applyCoupon,
       removeCoupon,
     }),
-    [cart, cartCount, cartSubtotal, cartDiscount, cartTotal, shippingCost, appliedCoupon, addToCart, removeFromCart, updateQuantity, clearCart, applyCoupon, removeCoupon]
+    [
+      cart,
+      cartCount,
+      cartSubtotal,
+      cartDiscount,
+      taxableAmount,
+      gstInfo,
+      shippingState,
+      setShippingState,
+      deliveryType,
+      setDeliveryType,
+      deliveryInfo,
+      shippingCost,
+      cartTotal,
+      appliedCoupon,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      applyCoupon,
+      removeCoupon,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -109,3 +163,4 @@ export function useCart() {
   if (!context) throw new Error('useCart must be used within CartProvider');
   return context;
 }
+
