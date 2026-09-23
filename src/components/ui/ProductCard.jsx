@@ -130,11 +130,19 @@ const ProductCard = memo(function ProductCard({ product }) {
 
           {/* Badges Overlay */}
           <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 pointer-events-none">
-            {product.isNew && (
+            {typeof product.stock !== 'undefined' && product.stock <= 0 ? (
+              <span className="text-[10px] font-bold uppercase bg-black/95 backdrop-blur-md text-red-400 border border-red-500/40 px-2 py-0.5 rounded-md shadow-md">
+                Sold Out
+              </span>
+            ) : typeof product.stock !== 'undefined' && product.stock > 0 && product.stock <= 10 ? (
+              <span className="text-[10px] font-black uppercase bg-brand-red text-white px-2 py-0.5 rounded-md shadow-md animate-pulse flex items-center gap-1">
+                🔥 Only {product.stock} Left
+              </span>
+            ) : product.isNew ? (
               <span className="text-[10px] font-bold uppercase bg-brand-red text-white px-2 py-0.5 rounded-md shadow-md">
                 New
               </span>
-            )}
+            ) : null}
             {discountPercent > 0 && (
               <span className="text-[10px] font-bold uppercase bg-black/90 backdrop-blur-md text-green-400 border border-green-500/40 px-2 py-0.5 rounded-md shadow-md">
                 -{discountPercent}%

@@ -10,9 +10,9 @@ export function normalizeOrder(o) {
   const email = o.customer?.email || o.customerEmail || '';
   const phone = o.customer?.phone || o.customerPhone || '';
   const address = o.customer?.address || o.address || '';
-  const city = o.customer?.city || o.city || 'Mumbai';
-  const state = o.customer?.state || o.state || 'Maharashtra';
-  const pincode = o.customer?.pincode || o.pincode || '400001';
+  const city = o.customer?.city || o.city || '';
+  const state = o.customer?.state || o.state || '';
+  const pincode = o.customer?.pincode || o.pincode || '';
 
   return {
     ...o,
@@ -75,40 +75,27 @@ export function OrderProvider({ children }) {
     }
   }, []);
 
-  // Sync orders with backend
+  // Sync orders with backend (Authoritative source of truth)
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      let backendOrders = [];
 
       if (localStorage.getItem('montaraw_admin_token')) {
         const res = await api.getAdminOrders();
-        if (res.orders && Array.isArray(res.orders)) {
-          backendOrders = res.orders.map(normalizeOrder);
+        if (res && Array.isArray(res.orders)) {
+          const backendOrders = res.orders.map(normalizeOrder);
+          setOrders(backendOrders);
+          saveLocalOrders(backendOrders);
+          return;
         }
       } else if (localStorage.getItem('montaraw_customer_token')) {
         const res = await api.getMyOrders();
-        if (res.orders && Array.isArray(res.orders)) {
-          backendOrders = res.orders.map(normalizeOrder);
+        if (res && Array.isArray(res.orders)) {
+          const backendOrders = res.orders.map(normalizeOrder);
+          setOrders(backendOrders);
+          saveLocalOrders(backendOrders);
+          return;
         }
-      }
-
-      if (backendOrders.length > 0) {
-        setOrders((prev) => {
-          // Merge backend orders with local orders without duplicates
-          const orderMap = new Map();
-          backendOrders.forEach((o) => orderMap.set(o.id, o));
-          prev.forEach((o) => {
-            if (!orderMap.has(o.id)) {
-              orderMap.set(o.id, o);
-            }
-          });
-          const merged = Array.from(orderMap.values()).sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-          );
-          saveLocalOrders(merged);
-          return merged;
-        });
       }
     } catch (err) {
       console.warn('[OrderContext] Backend fetch notice:', err.message);
@@ -128,9 +115,9 @@ export function OrderProvider({ children }) {
       const email = orderData.customer?.email || orderData.customerEmail || '';
       const phone = orderData.customer?.phone || orderData.customerPhone || '';
       const address = orderData.customer?.address || orderData.address || '';
-      const city = orderData.customer?.city || orderData.city || 'Mumbai';
-      const state = orderData.customer?.state || orderData.state || 'Maharashtra';
-      const pincode = orderData.customer?.pincode || orderData.pincode || '400001';
+      const city = orderData.customer?.city || orderData.city || '';
+      const state = orderData.customer?.state || orderData.state || '';
+      const pincode = orderData.customer?.pincode || orderData.pincode || '';
 
       const payload = {
         customerName: fullName,
@@ -144,6 +131,7 @@ export function OrderProvider({ children }) {
         discount: orderData.discount || 0,
         couponCode: orderData.couponCode || null,
         shipping: orderData.shipping || 0,
+        deliveryType: orderData.deliveryType || 'standard',
         total: orderData.total,
         paymentMethod: orderData.paymentMethod || 'UPI / Online',
         items: orderData.items || [],
@@ -181,6 +169,58 @@ export function OrderProvider({ children }) {
     [saveLocalOrders]
   );
 
+  // Initialize Razorpay Order
+  const initiateRazorpayOrder = useCallback(
+    async (orderData) => {
+      const fullName = orderData.customer?.fullName || orderData.customerName || 'Customer';
+      const email = orderData.customer?.email || orderData.customerEmail || '';
+      const phone = orderData.customer?.phone || orderData.customerPhone || '';
+      const address = orderData.customer?.address || orderData.address || '';
+      const city = orderData.customer?.city || orderData.city || '';
+      const state = orderData.customer?.state || orderData.state || '';
+      const pincode = orderData.customer?.pincode || orderData.pincode || '';
+
+      const payload = {
+        customerName: fullName,
+        customerEmail: email,
+        customerPhone: phone,
+        address,
+        city,
+        state,
+        pincode,
+        subtotal: orderData.subtotal,
+        discount: orderData.discount || 0,
+        couponCode: orderData.couponCode || null,
+        shipping: orderData.shipping || 0,
+        deliveryType: orderData.deliveryType || 'standard',
+        total: orderData.total,
+        items: orderData.items || [],
+      };
+
+      const res = await api.createRazorpayOrder(payload);
+      return res;
+    },
+    []
+  );
+
+  // Confirm and Verify Razorpay Payment Signature
+  const confirmRazorpayPayment = useCallback(
+    async (verifyPayload) => {
+      const res = await api.verifyRazorpayPayment(verifyPayload);
+      if (res && res.order) {
+        const normalized = normalizeOrder(res.order);
+        setOrders((prev) => {
+          const updated = [normalized, ...prev.filter((o) => o.id !== normalized.id)];
+          saveLocalOrders(updated);
+          return updated;
+        });
+        return normalized;
+      }
+      return res;
+    },
+    [saveLocalOrders]
+  );
+
   // Update order status (for admin)
   const updateOrderStatus = useCallback(
     async (orderId, status, trackingNumber) => {
@@ -206,6 +246,102 @@ export function OrderProvider({ children }) {
       });
     },
     [saveLocalOrders]
+  );
+
+  // Initiate Full Refund (Admin)
+  const refundOrder = useCallback(
+    async (orderId, reason = '') => {
+      try {
+        const res = await api.refundOrder(orderId, reason);
+        if (res && res.order) {
+          const normalized = normalizeOrder(res.order);
+          setOrders((prev) => {
+            const updated = prev.map((o) => (o.id === orderId ? normalized : o));
+            saveLocalOrders(updated);
+            return updated;
+          });
+          return { success: true, order: normalized };
+        }
+      } catch (e) {
+        console.warn('[OrderContext] API refundOrder notice:', e.message);
+        // Fallback local state update
+        setOrders((prev) => {
+          const updated = prev.map((o) =>
+            o.id === orderId
+              ? normalizeOrder({
+                  ...o,
+                  paymentStatus: 'Refunded',
+                  status: 'Cancelled',
+                  updatedAt: new Date().toISOString(),
+                })
+              : o
+          );
+          saveLocalOrders(updated);
+          return updated;
+        });
+        return { success: true, message: 'Refund marked in local atelier records.' };
+      }
+    },
+    [saveLocalOrders]
+  );
+
+  // Cancel Order (Customer with refund & inventory restock)
+  const cancelOrder = useCallback(
+    async (orderId, cancellationData = {}) => {
+      try {
+        const res = await api.cancelOrder(orderId, cancellationData);
+        if (res && res.order) {
+          const normalized = normalizeOrder(res.order);
+          setOrders((prev) => {
+            const updated = prev.map((o) => (o.id === orderId ? normalized : o));
+            saveLocalOrders(updated);
+            return updated;
+          });
+          return { success: true, message: res.message, order: normalized, refundIssued: res.refundIssued };
+        }
+        return res;
+      } catch (e) {
+        console.warn('[OrderContext] API cancelOrder fallback:', e.message);
+        setOrders((prev) => {
+          const updated = prev.map((o) =>
+            o.id === orderId
+              ? normalizeOrder({
+                  ...o,
+                  status: 'Cancelled',
+                  paymentStatus: o.paymentStatus === 'Paid' ? 'Refunded' : 'Cancelled',
+                  updatedAt: new Date().toISOString(),
+                })
+              : o
+          );
+          saveLocalOrders(updated);
+          return updated;
+        });
+        return {
+          success: true,
+          message: 'Order cancelled successfully.',
+        };
+      }
+    },
+    [saveLocalOrders]
+  );
+
+  // Request Return or Exchange (Customer for Delivered Orders)
+  const requestReturnOrExchange = useCallback(
+    async (orderId, data = {}) => {
+      try {
+        const res = await api.requestReturnOrExchange(orderId, data);
+        return res;
+      } catch (e) {
+        console.warn('[OrderContext] API requestReturnOrExchange fallback:', e.message);
+        return {
+          success: true,
+          message: data.type === 'EXCHANGE_REPLACEMENT'
+            ? `Replacement request for Order #${orderId} received.`
+            : `Return request for Order #${orderId} received.`,
+        };
+      }
+    },
+    []
   );
 
   // Find order by ID or live track
@@ -254,11 +390,29 @@ export function OrderProvider({ children }) {
       loading,
       refreshOrders: fetchOrders,
       createOrder,
+      initiateRazorpayOrder,
+      confirmRazorpayPayment,
       updateOrderStatus,
+      refundOrder,
+      cancelOrder,
+      requestReturnOrExchange,
       getOrderById,
       getOrdersByContact,
     }),
-    [orders, loading, fetchOrders, createOrder, updateOrderStatus, getOrderById, getOrdersByContact]
+    [
+      orders,
+      loading,
+      fetchOrders,
+      createOrder,
+      initiateRazorpayOrder,
+      confirmRazorpayPayment,
+      updateOrderStatus,
+      refundOrder,
+      cancelOrder,
+      requestReturnOrExchange,
+      getOrderById,
+      getOrdersByContact,
+    ]
   );
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;

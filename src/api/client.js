@@ -87,6 +87,27 @@ export const api = {
       body: JSON.stringify({ status, trackingNumber }),
       isAdmin: true,
     }),
+  refundOrder: (id, reason = '') =>
+    request(`/orders/admin/${id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      isAdmin: true,
+    }),
+  cancelOrder: (id, data = {}) =>
+    request(`/orders/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  requestReturnOrExchange: (id, data = {}) =>
+    request(`/orders/${id}/return-exchange`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Payments (Razorpay)
+  createRazorpayOrder: (data) => request('/payments/create-order', { method: 'POST', body: JSON.stringify(data) }),
+  verifyRazorpayPayment: (data) => request('/payments/verify', { method: 'POST', body: JSON.stringify(data) }),
+  getPaymentConfig: () => request('/payments/config'),
 
   // Auth
   registerCustomer: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),

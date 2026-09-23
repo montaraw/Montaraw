@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User, ArrowRight, Loader2, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import MontarawLogo from '../ui/MontarawLogo';
+import { lookupPincode, validateAddressLine, isValidIndianPhone } from '../../utils/pincodeService';
 
 export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
   const { customerLogin, customerRegister, isCustomerLoggedIn } = useAuth();
@@ -16,11 +17,40 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
     password: '',
     address: '',
     city: '',
-    state: 'Maharashtra',
+    state: '',
     pincode: '',
   });
 
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeMsg, setPincodeMsg] = useState('');
   const [error, setError] = useState('');
+
+  const handlePincodeLookup = useCallback(async (pin) => {
+    if (!pin || pin.length !== 6) {
+      setPincodeMsg('');
+      return;
+    }
+    setPincodeLoading(true);
+    setPincodeMsg('');
+    try {
+      const result = await lookupPincode(pin);
+      if (result.success) {
+        setRegForm((prev) => ({
+          ...prev,
+          city: result.city || prev.city,
+          state: result.state || prev.state,
+        }));
+        setPincodeMsg(`${result.city}, ${result.state}`);
+        setError('');
+      } else {
+        setPincodeMsg('');
+      }
+    } catch {
+      // ignore
+    } finally {
+      setPincodeLoading(false);
+    }
+  }, []);
 
   if (!isOpen || isCustomerLoggedIn) return null;
 
@@ -39,8 +69,31 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!regForm.fullName || !regForm.email || !regForm.password) {
-      setError('Please fill in required fields');
+    if (!regForm.fullName || regForm.fullName.trim().length < 2) {
+      setError('Please enter your full name');
+      return;
+    }
+    if (!regForm.email || !/\S+@\S+\.\S+/.test(regForm.email.trim())) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (regForm.phone && !isValidIndianPhone(regForm.phone)) {
+      setError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    if (regForm.address) {
+      const addrCheck = validateAddressLine(regForm.address);
+      if (!addrCheck.valid) {
+        setError(addrCheck.error);
+        return;
+      }
+    }
+    if (regForm.pincode && !/^\d{6}$/.test(regForm.pincode.trim())) {
+      setError('PIN code must be 6 digits');
+      return;
+    }
+    if (!regForm.password || regForm.password.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
     const result = await customerRegister(regForm);
@@ -201,10 +254,11 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
                   </label>
                   <input
                     type="tel"
-                    placeholder="6206424372"
+                    placeholder="e.g. 9876543210"
+                    maxLength={10}
                     value={regForm.phone}
-                    onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:border-brand-red"
+                    onChange={(e) => setRegForm({ ...regForm, phone: e.target.value.replace(/\D/g, '') })}
+                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:border-brand-red font-medium"
                   />
                 </div>
                 <div>
@@ -217,7 +271,7 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
                     placeholder="••••••••"
                     value={regForm.password}
                     onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:border-brand-red"
+                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:border-brand-red font-medium"
                   />
                 </div>
               </div>
@@ -228,39 +282,62 @@ export default function CustomerAuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="House/Street, Area"
+                  placeholder="House / Flat No., Street, Area"
                   value={regForm.address}
                   onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
-                  className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red"
+                  className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-bold text-white uppercase mb-1">
-                    City
+                    PIN Code (6 digits)
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Mumbai"
-                    value={regForm.city}
-                    onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
-                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="6-digit PIN"
+                      maxLength={6}
+                      value={regForm.pincode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setRegForm((prev) => ({ ...prev, pincode: val }));
+                        if (val.length === 6) {
+                          handlePincodeLookup(val);
+                        } else {
+                          setPincodeMsg('');
+                        }
+                      }}
+                      className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                    />
+                    {pincodeLoading && (
+                      <Loader2 size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-red animate-spin" />
+                    )}
+                    {pincodeMsg && !pincodeLoading && (
+                      <Check size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-green-400" />
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-white uppercase mb-1">
-                    PIN Code
+                    City / District
                   </label>
                   <input
                     type="text"
-                    placeholder="400050"
-                    value={regForm.pincode}
-                    onChange={(e) => setRegForm({ ...regForm, pincode: e.target.value })}
-                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red"
+                    placeholder="City / District"
+                    value={regForm.city}
+                    onChange={(e) => setRegForm((prev) => ({ ...prev, city: e.target.value }))}
+                    className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-400 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-brand-red font-medium"
                   />
                 </div>
               </div>
+
+              {pincodeMsg && (
+                <p className="text-[10px] text-green-400 font-semibold flex items-center gap-1">
+                  <Check size={11} /> Auto-detected: {pincodeMsg}
+                </p>
+              )}
 
               <button
                 type="submit"

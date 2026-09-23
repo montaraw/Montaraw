@@ -1,9 +1,17 @@
 import prisma from '../config/prisma.js';
 import { invalidateHomepageCache } from './homepage.controller.js';
+import { cache } from '../services/cache.service.js';
 
-// Get All Categories (Direct DB)
+// Get All Categories (Cached & High Performance)
 export const getCategories = async (req, res, next) => {
   try {
+    const CACHE_KEY = 'montaraw:categories:all';
+    const cached = cache.get(CACHE_KEY);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     const categories = await prisma.category.findMany({
       orderBy: { createdAt: 'asc' },
       include: {
@@ -13,11 +21,16 @@ export const getCategories = async (req, res, next) => {
       },
     });
 
-    res.json({
+    const responsePayload = {
       success: true,
       count: categories.length,
       categories,
-    });
+    };
+
+    cache.set(CACHE_KEY, responsePayload, 900);
+    res.setHeader('X-Cache', 'MISS');
+
+    res.json(responsePayload);
   } catch (error) {
     console.error('[Category API Error]:', error.message);
     res.status(500).json({
@@ -48,6 +61,7 @@ export const createCategory = async (req, res, next) => {
     });
 
     invalidateHomepageCache();
+    cache.del('montaraw:categories:*');
 
     res.status(201).json({
       success: true,
@@ -76,6 +90,7 @@ export const updateCategory = async (req, res, next) => {
     });
 
     invalidateHomepageCache();
+    cache.del('montaraw:categories:*');
 
     res.json({
       success: true,
@@ -94,6 +109,7 @@ export const deleteCategory = async (req, res, next) => {
     await prisma.category.delete({ where: { id } });
 
     invalidateHomepageCache();
+    cache.del('montaraw:categories:*');
 
     res.json({
       success: true,

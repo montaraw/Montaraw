@@ -1,11 +1,19 @@
 import prisma from '../config/prisma.js';
 import { invalidateHomepageCache } from './homepage.controller.js';
 import { defaultProducts } from '../config/defaultData.js';
+import { cache } from '../services/cache.service.js';
 
-// Get All Products with Filters (Direct DB)
+// Get All Products with Filters (Cached & High Performance)
 export const getProducts = async (req, res) => {
   try {
     const { gender, category, isSale, isNew, minPrice, maxPrice, search, sort } = req.query;
+
+    const cacheKey = `montaraw:products:${JSON.stringify(req.query || {})}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
 
     const where = {};
 
@@ -55,11 +63,17 @@ export const getProducts = async (req, res) => {
       },
     });
 
-    res.json({
+    const responsePayload = {
       success: true,
       count: products.length,
       products: products.length > 0 ? products : defaultProducts,
-    });
+    };
+
+    // Cache product queries for 10 minutes to minimize Supabase egress
+    cache.set(cacheKey, responsePayload, 600);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.json(responsePayload);
   } catch (error) {
     console.warn('[Product API Notice - DB Unreachable]:', error.message);
     res.json({
@@ -151,7 +165,7 @@ export const createProduct = async (req, res, next) => {
         colorNames: Array.isArray(colorNames) && colorNames.length ? colorNames : ['Noir Black'],
         isNew: isNew !== undefined ? Boolean(isNew) : true,
         isSale: isSale !== undefined ? Boolean(isSale) : false,
-        stock: stock ? parseInt(stock) : 50,
+        stock: stock !== undefined && stock !== '' ? Math.max(0, parseInt(stock)) : 0,
       },
       include: {
         category: true,
@@ -159,6 +173,7 @@ export const createProduct = async (req, res, next) => {
     });
 
     invalidateHomepageCache();
+    cache.del('montaraw:products:*');
 
     res.status(201).json({
       success: true,
@@ -195,7 +210,7 @@ export const updateProduct = async (req, res, next) => {
     if (body.isSale !== undefined) cleanData.isSale = Boolean(body.isSale);
     if (body.rating !== undefined) cleanData.rating = parseFloat(body.rating) || 4.8;
     if (body.reviews !== undefined) cleanData.reviews = parseInt(body.reviews) || 0;
-    if (body.stock !== undefined) cleanData.stock = parseInt(body.stock) || 50;
+    if (body.stock !== undefined) cleanData.stock = body.stock !== '' ? Math.max(0, parseInt(body.stock)) : 0;
     if (body.price !== undefined) cleanData.price = parseFloat(body.price);
     if (body.originalPrice !== undefined) cleanData.originalPrice = body.originalPrice ? parseFloat(body.originalPrice) : null;
 
@@ -233,6 +248,7 @@ export const updateProduct = async (req, res, next) => {
     }
 
     invalidateHomepageCache();
+    cache.del('montaraw:products:*');
 
     res.json({
       success: true,
@@ -257,6 +273,7 @@ export const deleteProduct = async (req, res, next) => {
     }
 
     invalidateHomepageCache();
+    cache.del('montaraw:products:*');
 
     res.json({
       success: true,

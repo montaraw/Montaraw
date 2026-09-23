@@ -52,9 +52,30 @@ export const registerLimiter = createLimiter({
   message: 'Too many registration requests. Please wait 1 minute.',
 });
 
-// 100 general API calls per minute
+// 12 payment order creations per minute per IP
+export const paymentOrderLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 12,
+  message: 'Too many payment order requests. Please wait a moment before retrying.',
+});
+
+// 20 payment signature verification attempts per minute per IP
+export const paymentVerifyLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: 'Too many payment verification requests. Please wait.',
+});
+
+// 15 uploads per minute per IP
+export const uploadLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: 'Upload rate limit exceeded. Please wait 1 minute before uploading again.',
+});
+
+// 120 general API calls per minute
 export const apiLimiter = createLimiter({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 120,
   message: 'API rate limit exceeded. Please slow down.',
 });

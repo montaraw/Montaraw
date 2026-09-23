@@ -100,7 +100,7 @@ export default function CartSummary({ onCheckoutClick }) {
         <div className="flex justify-between text-gray-200">
           <div className="flex items-center gap-1">
             <Truck size={12} className="text-brand-red" />
-            <span>Courier Delivery ({shippingState})</span>
+            <span>Courier Delivery</span>
           </div>
           <span className="text-white font-bold">
             ₹{shippingCost.toLocaleString()}

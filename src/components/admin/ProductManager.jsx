@@ -10,6 +10,7 @@ const emptyProduct = {
   category: 'pakistani-suits',
   price: '',
   originalPrice: '',
+  stock: '',
   description: '',
   fabric: '100% Premium Pure Fabric',
   fit: 'Tailored Fit',
@@ -46,6 +47,11 @@ export default function ProductManager() {
       return;
     }
 
+    if (form.stock === '' || isNaN(parseInt(form.stock))) {
+      setErrorMsg('Please specify the exact inventory stock quantity.');
+      return;
+    }
+
     const validImages = form.images && form.images.length > 0
       ? form.images.filter((img) => img && typeof img === 'string' && !img.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i) && !img.includes('youtube.com') && !img.includes('youtu.be') && !img.includes('vimeo.com'))
       : (form.image ? [form.image] : []);
@@ -60,6 +66,7 @@ export default function ProductManager() {
       ...form,
       price: Number(form.price),
       originalPrice: Number(form.originalPrice) || Number(form.price),
+      stock: Math.max(0, parseInt(form.stock)),
       sizes: sizesInput.split(',').map((s) => s.trim()).filter(Boolean),
       colors: colorsInput.split(',').map((s) => s.trim()).filter(Boolean),
       colorNames: colorNamesInput.split(',').map((s) => s.trim()).filter(Boolean),
@@ -96,6 +103,7 @@ export default function ProductManager() {
       category: product.categorySlug || (typeof product.category === 'object' ? product.category?.slug : product.category) || 'pakistani-suits',
       price: product.price,
       originalPrice: product.originalPrice,
+      stock: product.stock !== undefined ? product.stock : 0,
       description: product.description || '',
       fabric: product.fabric || '',
       fit: product.fit || '',
@@ -353,6 +361,21 @@ export default function ProductManager() {
                   />
                 </div>
 
+                <div>
+                  <label className="block font-bold text-white uppercase mb-1.5">
+                    Inventory Stock (Units) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    placeholder="e.g. 50"
+                    className="w-full bg-[#1c1c1c] border border-white/20 text-white px-3.5 py-3 rounded-xl focus:outline-none focus:border-brand-red font-medium"
+                  />
+                </div>
+
                 <div className="md:col-span-3">
                   <MultiImageUploadZone
                     images={form.images?.length ? form.images : (form.image ? [form.image] : [])}
@@ -520,6 +543,7 @@ export default function ProductManager() {
                 <th className="py-4 px-5">Garment</th>
                 <th className="py-4 px-5">Gender</th>
                 <th className="py-4 px-5">Category</th>
+                <th className="py-4 px-5 text-center">Stock</th>
                 <th className="py-4 px-5 text-right">Price</th>
                 <th className="py-4 px-5 text-center">Tags</th>
                 <th className="py-4 px-5 text-right w-28">Actions</th>
@@ -554,6 +578,18 @@ export default function ProductManager() {
 
                   <td className="py-4 px-5 text-gray-300 font-medium capitalize">
                     {typeof product.category === 'object' && product.category?.name ? product.category.name : (typeof product.category === 'string' ? product.category.replace(/-/g, ' ') : (product.categorySlug?.replace(/-/g, ' ') || 'Collection'))}
+                  </td>
+
+                  <td className="py-4 px-5 text-center">
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md border ${
+                      (product.stock ?? 50) <= 0
+                        ? 'bg-red-950/70 text-red-400 border-red-700/50'
+                        : (product.stock ?? 50) <= 10
+                        ? 'bg-amber-950/70 text-amber-300 border-amber-700/50'
+                        : 'bg-emerald-950/70 text-emerald-400 border-emerald-700/50'
+                    }`}>
+                      {(product.stock ?? 50) <= 0 ? 'Out of Stock' : `${product.stock ?? 50} Units`}
+                    </span>
                   </td>
 
                   <td className="py-4 px-5 text-right font-black text-white text-sm">
@@ -619,7 +655,18 @@ export default function ProductManager() {
                     </span>
                   </div>
                   <h4 className="font-bold text-white text-sm line-clamp-1">{product.name}</h4>
-                  <span className="font-black text-white text-sm">₹{product.price.toLocaleString()}</span>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <span className="font-black text-white text-sm">₹{product.price.toLocaleString()}</span>
+                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${
+                      (product.stock ?? 50) <= 0
+                        ? 'bg-red-950/70 text-red-400 border-red-700/50'
+                        : (product.stock ?? 50) <= 10
+                        ? 'bg-amber-950/70 text-amber-300 border-amber-700/50'
+                        : 'bg-emerald-950/70 text-emerald-400 border-emerald-700/50'
+                    }`}>
+                      {(product.stock ?? 50) <= 0 ? 'Out of Stock' : `Stock: ${product.stock ?? 50}`}
+                    </span>
+                  </div>
                 </div>
               </div>
 

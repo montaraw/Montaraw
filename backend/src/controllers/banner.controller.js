@@ -1,18 +1,31 @@
 import prisma from '../config/prisma.js';
 import { invalidateHomepageCache } from './homepage.controller.js';
+import { cache } from '../services/cache.service.js';
 
-// Get All Banners (Direct DB)
+// Get All Banners (Cached & High Performance)
 export const getBanners = async (req, res, next) => {
   try {
+    const CACHE_KEY = 'montaraw:banners:all';
+    const cached = cache.get(CACHE_KEY);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     const banners = await prisma.banner.findMany({
       orderBy: { order: 'asc' },
     });
 
-    res.json({
+    const responsePayload = {
       success: true,
       count: banners.length,
       banners,
-    });
+    };
+
+    cache.set(CACHE_KEY, responsePayload, 900);
+    res.setHeader('X-Cache', 'MISS');
+
+    res.json(responsePayload);
   } catch (error) {
     console.error('[Banner API Error]:', error.message);
     res.status(500).json({
@@ -44,6 +57,7 @@ export const createBanner = async (req, res, next) => {
     });
 
     invalidateHomepageCache();
+    cache.del('montaraw:banners:*');
 
     res.status(201).json({
       success: true,
@@ -95,6 +109,7 @@ export const updateBanner = async (req, res, next) => {
     }
 
     invalidateHomepageCache();
+    cache.del('montaraw:banners:*');
 
     res.json({
       success: true,
@@ -114,6 +129,7 @@ export const deleteBanner = async (req, res, next) => {
     await prisma.banner.delete({ where: { id } });
 
     invalidateHomepageCache();
+    cache.del('montaraw:banners:*');
 
     res.json({
       success: true,

@@ -1,9 +1,17 @@
 import prisma from '../config/prisma.js';
 import { invalidateHomepageCache } from './homepage.controller.js';
+import { cache } from '../services/cache.service.js';
 
-// Get Store Settings (Direct DB)
+// Get Store Settings (Cached & High Performance)
 export const getSettings = async (req, res, next) => {
   try {
+    const CACHE_KEY = 'montaraw:settings:singleton';
+    const cached = cache.get(CACHE_KEY);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     let settings = await prisma.setting.findUnique({
       where: { id: 'singleton' },
     });
@@ -22,10 +30,15 @@ export const getSettings = async (req, res, next) => {
       });
     }
 
-    res.json({
+    const responsePayload = {
       success: true,
       settings,
-    });
+    };
+
+    cache.set(CACHE_KEY, responsePayload, 900);
+    res.setHeader('X-Cache', 'MISS');
+
+    res.json(responsePayload);
   } catch (error) {
     console.error('[Settings API Error]:', error.message);
     res.status(500).json({
@@ -62,6 +75,7 @@ export const updateSettings = async (req, res, next) => {
     });
 
     invalidateHomepageCache();
+    cache.del('montaraw:settings:*');
 
     res.json({
       success: true,

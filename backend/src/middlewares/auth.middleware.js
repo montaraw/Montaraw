@@ -70,3 +70,23 @@ export const requireAdmin = (req, res, next) => {
   }
   next();
 };
+
+export const optionalAuthenticate = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'montaraw_luxury_secret_jwt_key_2025_atelier');
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email,
+        fullName: decoded.fullName || 'Customer',
+        role: decoded.role || 'CUSTOMER',
+      };
+    }
+  } catch {
+    // Ignore invalid token in optional mode
+  }
+  next();
+};
+

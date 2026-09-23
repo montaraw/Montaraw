@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
+import securityLog from '../utils/securityLogger.js';
 
 const generateToken = (userId, role) => {
   return jwt.sign(
@@ -81,12 +82,14 @@ export const loginCustomer = async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials. No customer found with this email.' });
+      securityLog.warn('LOGIN_FAILED_UNKNOWN_USER', { email: cleanEmail }, { req });
+      return res.status(401).json({ success: false, message: 'Invalid email address or password.' });
     }
 
     // 1. Check if account is locked
     if (user.lockUntil && new Date() < new Date(user.lockUntil)) {
       const remainingMinutes = Math.ceil((new Date(user.lockUntil).getTime() - Date.now()) / 60000);
+      securityLog.securityAlert('LOCKED_ACCOUNT_LOGIN_ATTEMPT', { email: cleanEmail, remainingMinutes }, { req, userId: user.id });
       return res.status(429).json({
         success: false,
         message: `Account is temporarily locked due to security policy. Please try again in ${remainingMinutes} minutes.`,
@@ -101,6 +104,9 @@ export const loginCustomer = async (req, res, next) => {
 
       if (failedAttempts >= 5) {
         lockUntil = new Date(Date.now() + 10 * 60 * 1000); // Lock for 10 minutes
+        securityLog.securityAlert('ACCOUNT_LOCKED_5_FAILED_ATTEMPTS', { email: cleanEmail }, { req, userId: user.id });
+      } else {
+        securityLog.warn('LOGIN_FAILED_WRONG_PASSWORD', { email: cleanEmail, attempt: failedAttempts }, { req, userId: user.id });
       }
 
       await prisma.user.update({
@@ -114,13 +120,13 @@ export const loginCustomer = async (req, res, next) => {
       if (failedAttempts >= 5) {
         return res.status(429).json({
           success: false,
-          message: 'Account has been locked for 10 minutes following 5 consecutive failed login attempts.',
+          message: 'Account has been temporarily locked for 10 minutes following 5 consecutive failed login attempts.',
         });
       }
 
       return res.status(401).json({
         success: false,
-        message: `Invalid password. ${5 - failedAttempts} attempts remaining before temporary lockout.`,
+        message: 'Invalid email address or password.',
       });
     }
 
@@ -145,6 +151,8 @@ export const loginCustomer = async (req, res, next) => {
       pincode: user.pincode,
       role: user.role,
     };
+
+    securityLog.info('CUSTOMER_LOGIN_SUCCESS', { email: user.email, userId: user.id }, { req, userId: user.id });
 
     res.json({
       success: true,
@@ -173,6 +181,7 @@ export const loginAdmin = async (req, res, next) => {
     // 1. Direct verify against dedicated admin credentials
     if (cleanEmail === defaultEmail && password === defaultPass) {
       const token = generateToken('singleton-admin', 'ADMIN');
+      securityLog.info('ADMIN_LOGIN_SUCCESS_PRIMARY', { email: defaultEmail }, { req });
       return res.json({
         success: true,
         message: 'Admin authenticated successfully.',
@@ -190,15 +199,18 @@ export const loginAdmin = async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
     if (!user || user.role !== 'ADMIN') {
-      return res.status(401).json({ success: false, message: 'Access denied. Invalid administrator credentials.' });
+      securityLog.warn('ADMIN_LOGIN_FAILED_UNAUTHORIZED', { email: cleanEmail }, { req });
+      return res.status(401).json({ success: false, message: 'Invalid administrator credentials.' });
     }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
-      return res.status(401).json({ success: false, message: 'Invalid administrator password.' });
+      securityLog.warn('ADMIN_LOGIN_FAILED_INVALID_PASS', { email: cleanEmail }, { req, userId: user.id });
+      return res.status(401).json({ success: false, message: 'Invalid administrator credentials.' });
     }
 
     const token = generateToken(user.id, user.role);
+    securityLog.info('ADMIN_LOGIN_SUCCESS_DB', { email: user.email, userId: user.id }, { req, userId: user.id });
 
     res.json({
       success: true,

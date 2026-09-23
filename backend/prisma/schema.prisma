@@ -114,31 +114,59 @@ model Banner {
 }
 
 model Order {
-  id             String      @id // e.g. "MON-98241"
-  userId         String?
-  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  customerName   String
-  customerEmail  String
-  customerPhone  String
-  address        String
-  city           String
-  state          String
-  pincode        String
-  subtotal       Float
-  discount       Float       @default(0)
-  couponCode     String?
-  shipping       Float       @default(0)
-  total          Float
-  paymentMethod  String      @default("UPI / Online")
-  status         OrderStatus @default(Processing)
-  trackingNumber String?
-  items          OrderItem[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                String      @id // e.g. "MON-98241"
+  userId            String?
+  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName      String
+  customerEmail     String
+  customerPhone     String
+  address           String
+  city              String
+  state             String
+  pincode           String
+  subtotal          Float
+  discount          Float       @default(0)
+  couponCode        String?
+  shipping          Float       @default(0)
+  total             Float
+  paymentMethod     String      @default("UPI / Online")
+  paymentStatus     String      @default("Pending") // "Pending" | "Paid" | "Failed" | "Refunded"
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  status            OrderStatus @default(Processing)
+  trackingNumber    String?
+  items             OrderItem[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@index([userId])
   @@index([customerEmail])
   @@index([status, createdAt(sort: Desc)])
+  @@index([razorpayOrderId])
+}
+
+model PaymentLog {
+  id          String   @id @default(cuid())
+  orderId     String?
+  provider    String   @default("RAZORPAY")
+  action      String
+  payload     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  eventId     String    @unique
+  eventType   String
+  payload     Json
+  isProcessed Boolean   @default(false)
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([eventId])
 }
 
 model OrderItem {

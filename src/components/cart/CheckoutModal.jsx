@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldCheck, CreditCard, Banknote, QrCode, ArrowRight, UserCheck, ChevronDown, Receipt, Truck, MapPin } from 'lucide-react';
+import { X, ShieldCheck, CreditCard, Banknote, QrCode, ArrowRight, UserCheck, ChevronDown, Receipt, Truck, MapPin, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useOrders } from '../../context/OrderContext';
 import { useAuth } from '../../context/AuthContext';
 import { STATE_ZONES } from '../../utils/taxAndShippingHelper';
+import { lookupPincode, validateAddressLine, isValidIndianPhone } from '../../utils/pincodeService';
+import { openRazorpayModal } from '../../services/razorpayService';
 
 export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
   const {
@@ -17,11 +19,12 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
     deliveryInfo,
     shippingState,
     setShippingState,
+    deliveryType,
     cartTotal,
     appliedCoupon,
     clearCart,
   } = useCart();
-  const { createOrder } = useOrders();
+  const { createOrder, initiateRazorpayOrder, confirmRazorpayPayment } = useOrders();
   const { customerUser } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -35,9 +38,56 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
     pincode: '',
   });
 
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeVerifiedMsg, setPincodeVerifiedMsg] = useState('');
+  const [paymentError, setPaymentError] = useState('');
+
+  // Function to handle pincode lookup and city/state auto-fill
+  const handlePincodeLookup = useCallback(async (pin) => {
+    if (!pin || pin.length !== 6) {
+      setPincodeVerifiedMsg('');
+      return;
+    }
+
+    setPincodeLoading(true);
+    setPincodeVerifiedMsg('');
+    try {
+      const result = await lookupPincode(pin);
+      if (result.success) {
+        setFormData((prev) => ({
+          ...prev,
+          city: result.city || prev.city,
+          state: result.state || prev.state,
+        }));
+        if (result.state) {
+          setShippingState(result.state);
+        }
+        setFormErrors((prev) => {
+          const next = { ...prev };
+          delete next.pincode;
+          delete next.city;
+          delete next.state;
+          return next;
+        });
+        setPincodeVerifiedMsg(`${result.city}, ${result.state}`);
+      } else {
+        setPincodeVerifiedMsg('');
+        setFormErrors((prev) => ({
+          ...prev,
+          pincode: result.error || 'Invalid Indian PIN code',
+        }));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setPincodeLoading(false);
+    }
+  }, [setShippingState]);
+
   // Pre-fill from logged in customer
   useEffect(() => {
     if (customerUser) {
+      const userPin = customerUser.pincode || '';
       setFormData((prev) => ({
         ...prev,
         fullName: customerUser.fullName || prev.fullName,
@@ -46,13 +96,16 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
         address: customerUser.address || prev.address,
         city: customerUser.city || prev.city,
         state: customerUser.state || shippingState || 'Uttar Pradesh',
-        pincode: customerUser.pincode || prev.pincode,
+        pincode: userPin || prev.pincode,
       }));
       if (customerUser.state) {
         setShippingState(customerUser.state);
       }
+      if (userPin && userPin.length === 6 && (!customerUser.city || !customerUser.state)) {
+        handlePincodeLookup(userPin);
+      }
     }
-  }, [customerUser, isOpen, setShippingState]);
+  }, [customerUser, isOpen, setShippingState, handlePincodeLookup]);
 
   const [paymentMethod, setPaymentMethod] = useState('UPI / Online');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,12 +115,30 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
 
   const validateStep1 = () => {
     const errors = {};
-    if (!formData.fullName.trim()) errors.fullName = 'Full name is required';
-    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Valid email is required';
-    if (!formData.phone.trim() || !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) errors.phone = '10-digit mobile number required';
-    if (!formData.address.trim()) errors.address = 'Street address is required';
-    if (!formData.city.trim()) errors.city = 'City is required';
-    if (!formData.pincode.trim() || !/^\d{6}$/.test(formData.pincode.trim())) errors.pincode = '6-digit PIN code required';
+    if (!formData.fullName.trim() || formData.fullName.trim().length < 2) {
+      errors.fullName = 'Please enter your full name';
+    }
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email.trim())) {
+      errors.email = 'Valid email address is required';
+    }
+    if (!isValidIndianPhone(formData.phone)) {
+      errors.phone = 'Valid 10-digit mobile number required (e.g. 9876543210)';
+    }
+
+    const addrValidation = validateAddressLine(formData.address);
+    if (!addrValidation.valid) {
+      errors.address = addrValidation.error;
+    }
+
+    if (!formData.pincode.trim() || !/^\d{6}$/.test(formData.pincode.trim())) {
+      errors.pincode = '6-digit PIN code required';
+    }
+    if (!formData.city.trim() || formData.city.trim().length < 2) {
+      errors.city = 'City / District is required';
+    }
+    if (!formData.state.trim()) {
+      errors.state = 'State is required';
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -83,42 +154,104 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
+    setPaymentError('');
 
-    try {
-      const orderData = {
-        customer: { ...formData },
-        items: cart.map((item) => ({
-          id: item.id || item.productId,
-          productId: item.id || item.productId,
-          name: item.name,
-          size: item.selectedSize || item.size || 'M',
-          color: item.selectedColor || item.color || '#000000',
-          colorName: item.selectedColorName || item.colorName || item.colorNames?.[0] || 'Standard',
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-        })),
-        subtotal: cartSubtotal,
-        discount: cartDiscount,
-        tax: clothingGst,
-        gstBreakdown: gstInfo,
-        shipping: shippingCost,
-        deliveryZone: deliveryInfo.zoneName,
-        couponCode: appliedCoupon?.code || null,
-        total: cartTotal,
-        paymentMethod,
-      };
+    const orderData = {
+      customer: { ...formData },
+      items: cart.map((item) => ({
+        id: item.id || item.productId,
+        productId: item.id || item.productId,
+        name: item.name,
+        size: item.selectedSize || item.size || 'M',
+        color: item.selectedColor || item.color || '#000000',
+        colorName: item.selectedColorName || item.colorName || item.colorNames?.[0] || 'Standard',
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+      })),
+      subtotal: cartSubtotal,
+      discount: cartDiscount,
+      tax: clothingGst,
+      gstBreakdown: gstInfo,
+      shipping: shippingCost,
+      deliveryZone: deliveryInfo.zoneName,
+      deliveryType: deliveryType || 'standard',
+      couponCode: appliedCoupon?.code || null,
+      total: cartTotal,
+      paymentMethod,
+    };
 
-      const placedOrder = await createOrder(orderData);
-      clearCart();
-      setIsProcessing(false);
-      onClose();
-      if (placedOrder && onOrderSuccess) {
-        onOrderSuccess(placedOrder);
+    // Case 1: Cash on Delivery
+    if (paymentMethod === 'Cash on Delivery') {
+      try {
+        const placedOrder = await createOrder({
+          ...orderData,
+          paymentMethod: 'Cash on Delivery (COD)',
+        });
+        clearCart();
+        setIsProcessing(false);
+        onClose();
+        if (placedOrder && onOrderSuccess) {
+          onOrderSuccess(placedOrder);
+        }
+      } catch (err) {
+        console.error('[CheckoutModal] COD Order creation error:', err);
+        setPaymentError(err.message || 'Failed to place COD order.');
+        setIsProcessing(false);
       }
+      return;
+    }
+
+    // Case 2: Razorpay Online Payment (UPI, Cards, NetBanking)
+    try {
+      const rzpInit = await initiateRazorpayOrder(orderData);
+
+      if (!rzpInit || !rzpInit.razorpayOrderId) {
+        throw new Error('Failed to initialize Razorpay payment session.');
+      }
+
+      await openRazorpayModal({
+        orderId: rzpInit.orderId,
+        razorpayOrderId: rzpInit.razorpayOrderId,
+        amountInPaise: rzpInit.amountInPaise,
+        keyId: rzpInit.keyId,
+        currency: rzpInit.currency || 'INR',
+        customer: formData,
+        orderDescription: `Montaraw Atelier #${rzpInit.orderId}`,
+        onSuccess: async (rzpResponse) => {
+          try {
+            const confirmedOrder = await confirmRazorpayPayment({
+              orderId: rzpInit.orderId,
+              razorpay_order_id: rzpResponse.razorpay_order_id,
+              razorpay_payment_id: rzpResponse.razorpay_payment_id,
+              razorpay_signature: rzpResponse.razorpay_signature,
+            });
+            clearCart();
+            setIsProcessing(false);
+            onClose();
+            if (onOrderSuccess) {
+              onOrderSuccess(confirmedOrder);
+            }
+          } catch (verifyErr) {
+            console.error('[CheckoutModal] Payment verification error:', verifyErr);
+            setIsProcessing(false);
+            setPaymentError(verifyErr.message || 'Payment verification failed. If your account was charged, a full refund will be processed automatically.');
+          }
+        },
+        onFailure: (err) => {
+          console.warn('[CheckoutModal] Razorpay transaction declined:', err);
+          setIsProcessing(false);
+          setPaymentError(err?.description || err?.message || 'Payment transaction failed or was declined. You can retry or choose Cash on Delivery.');
+        },
+        onDismiss: () => {
+          setIsProcessing(false);
+          setPaymentError('Payment window was closed. You can retry or select another payment option.');
+        },
+      });
     } catch (err) {
-      console.error('[CheckoutModal] Order creation error:', err);
+      console.error('[CheckoutModal] Razorpay Order error:', err);
       setIsProcessing(false);
+      setPaymentError(err.message || 'Could not connect to payment gateway. Please try again or use Cash on Delivery.');
     }
   };
 
@@ -187,6 +320,62 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
             {step === 1 ? (
               /* STEP 1: Shipping Address Form */
               <form id="shipping-form" onSubmit={handleNext} className="space-y-3.5 sm:space-y-4">
+                {/* Saved Addresses Quick Selector */}
+                {customerUser?.addresses && customerUser.addresses.length > 1 && (
+                  <div className="space-y-1.5 pb-2 border-b border-white/10">
+                    <label className="block text-[11px] font-bold text-gray-300 uppercase">
+                      Select From Saved Addresses ({customerUser.addresses.length})
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {customerUser.addresses.map((addr) => {
+                        const isSelected =
+                          formData.address === addr.address && formData.pincode === addr.pincode;
+                        return (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                fullName: addr.fullName || prev.fullName,
+                                phone: addr.phone || prev.phone,
+                                address: addr.address,
+                                city: addr.city,
+                                state: addr.state,
+                                pincode: addr.pincode,
+                              }));
+                              if (addr.state) {
+                                setShippingState(addr.state);
+                              }
+                              setPincodeVerifiedMsg(`${addr.city}, ${addr.state}`);
+                              setFormErrors({});
+                            }}
+                            className={`p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-brand-red/15 border-brand-red/60 text-white shadow-md'
+                                : 'bg-white/5 border-white/10 text-gray-300 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/10 text-white">
+                                {addr.tag || 'Home'}
+                              </span>
+                              {addr.isDefault && (
+                                <span className="text-[9px] font-bold uppercase text-green-400">Default</span>
+                              )}
+                            </div>
+                            <p className="text-xs font-bold text-white truncate">{addr.fullName || customerUser.fullName}</p>
+                            <p className="text-[11px] text-gray-300 line-clamp-1">{addr.address}</p>
+                            <p className="text-[10px] text-gray-400">
+                              {[addr.city, addr.state].filter(Boolean).join(', ')} - {addr.pincode}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
                   {/* Full Name */}
                   <div>
@@ -245,21 +434,59 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
 
                   {/* Pincode */}
                   <div>
-                    <label className="block font-bold text-white uppercase text-[11px] sm:text-xs mb-1">
-                      PIN Code (6 digits) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 400050"
-                      maxLength={6}
-                      value={formData.pincode}
-                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
-                      className={`w-full bg-[#181818] border text-white placeholder-gray-400 text-xs sm:text-[13px] px-3.5 py-2.5 sm:py-3 rounded-xl focus:outline-none font-medium transition-colors ${
-                        formErrors.pincode ? 'border-red-500 bg-red-500/5' : 'border-white/20 focus:border-brand-red'
-                      }`}
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-white uppercase text-[11px] sm:text-xs">
+                        PIN Code (6 digits) *
+                      </label>
+                      {pincodeLoading && (
+                        <span className="text-[10px] text-brand-red flex items-center gap-1 font-semibold">
+                          <Loader2 size={11} className="animate-spin" /> Fetching...
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 400050"
+                        maxLength={6}
+                        value={formData.pincode}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setFormData((prev) => ({ ...prev, pincode: val }));
+                          if (formErrors.pincode) {
+                            setFormErrors((prev) => {
+                              const next = { ...prev };
+                              delete next.pincode;
+                              return next;
+                            });
+                          }
+                          if (val.length === 6) {
+                            handlePincodeLookup(val);
+                          } else {
+                            setPincodeVerifiedMsg('');
+                          }
+                        }}
+                        className={`w-full bg-[#181818] border text-white placeholder-gray-400 text-xs sm:text-[13px] px-3.5 py-2.5 sm:py-3 rounded-xl focus:outline-none font-medium transition-colors ${
+                          formErrors.pincode
+                            ? 'border-red-500 bg-red-500/5'
+                            : pincodeVerifiedMsg
+                            ? 'border-green-500/60 focus:border-green-400'
+                            : 'border-white/20 focus:border-brand-red'
+                        }`}
+                      />
+                      {pincodeVerifiedMsg && !pincodeLoading && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 pointer-events-none">
+                          <Check size={16} />
+                        </div>
+                      )}
+                    </div>
                     {formErrors.pincode && <p className="text-[10px] text-red-400 mt-1 font-semibold">{formErrors.pincode}</p>}
+                    {pincodeVerifiedMsg && !formErrors.pincode && (
+                      <p className="text-[10px] text-green-400 mt-1 font-semibold flex items-center gap-1 truncate">
+                        <Check size={11} /> Auto-filled: {pincodeVerifiedMsg}
+                      </p>
+                    )}
                   </div>
 
                   {/* Delivery Address */}
@@ -272,7 +499,16 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                       rows={2}
                       placeholder="House / Flat No., Building, Street, Landmark"
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, address: e.target.value }));
+                        if (formErrors.address) {
+                          setFormErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.address;
+                            return next;
+                          });
+                        }
+                      }}
                       className={`w-full bg-[#181818] border text-white placeholder-gray-400 text-xs sm:text-[13px] px-3.5 py-2.5 rounded-xl focus:outline-none resize-none font-medium transition-colors ${
                         formErrors.address ? 'border-red-500 bg-red-500/5' : 'border-white/20 focus:border-brand-red'
                       }`}
@@ -283,14 +519,23 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                   {/* City */}
                   <div>
                     <label className="block font-bold text-white uppercase text-[11px] sm:text-xs mb-1">
-                      City *
+                      City / District *
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Mumbai"
+                      placeholder="City / District"
                       value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, city: e.target.value }));
+                        if (formErrors.city) {
+                          setFormErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.city;
+                            return next;
+                          });
+                        }
+                      }}
                       className={`w-full bg-[#181818] border text-white placeholder-gray-400 text-xs sm:text-[13px] px-3.5 py-2.5 sm:py-3 rounded-xl focus:outline-none font-medium transition-colors ${
                         formErrors.city ? 'border-red-500 bg-red-500/5' : 'border-white/20 focus:border-brand-red'
                       }`}
@@ -308,8 +553,15 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                         value={formData.state}
                         onChange={(e) => {
                           const newState = e.target.value;
-                          setFormData({ ...formData, state: newState });
+                          setFormData((prev) => ({ ...prev, state: newState }));
                           setShippingState(newState);
+                          if (formErrors.state) {
+                            setFormErrors((prev) => {
+                              const next = { ...prev };
+                              delete next.state;
+                              return next;
+                            });
+                          }
                         }}
                         className="w-full bg-[#181818] border border-white/20 text-white text-xs sm:text-[13px] px-3.5 py-2.5 sm:py-3 rounded-xl focus:outline-none focus:border-brand-red font-bold uppercase appearance-none pr-8 cursor-pointer"
                       >
@@ -437,7 +689,7 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                   <div className="flex justify-between text-gray-300">
                     <div className="flex items-center gap-1">
                       <Truck size={12} className="text-brand-red" />
-                      <span>Courier Shipping ({formData.state}):</span>
+                      <span>Courier Shipping:</span>
                     </div>
                     <span className="text-white font-bold">₹{shippingCost.toLocaleString()}</span>
                   </div>
@@ -450,6 +702,13 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                     <span className="font-black text-lg sm:text-xl text-white">₹{cartTotal.toLocaleString()}</span>
                   </div>
                 </div>
+
+                {paymentError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2 font-medium">
+                    <AlertCircle size={15} className="shrink-0" />
+                    <span className="flex-1">{paymentError}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -487,11 +746,16 @@ export default function CheckoutModal({ isOpen, onClose, onOrderSuccess }) {
                   className="flex-1 btn-primary py-3 sm:py-3.5 px-4 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2 shadow-2xl disabled:opacity-50"
                 >
                   {isProcessing ? (
-                    <span>Processing Order...</span>
+                    <span className="flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>{paymentMethod === 'Cash on Delivery' ? 'Placing Order...' : 'Opening Secure Gateway...'}</span>
+                    </span>
                   ) : (
                     <>
                       <ShieldCheck size={16} />
-                      <span className="truncate">Confirm Order • ₹{cartTotal.toLocaleString()}</span>
+                      <span className="truncate">
+                        {paymentMethod === 'Cash on Delivery' ? 'Confirm COD Order' : 'Pay with Razorpay'} • ₹{cartTotal.toLocaleString()}
+                      </span>
                     </>
                   )}
                 </button>

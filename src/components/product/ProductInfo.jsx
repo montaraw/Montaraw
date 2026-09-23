@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Zap, Star, Truck, RotateCcw, Shield, Check, Ruler, X, MapPin } from 'lucide-react';
+import { Heart, ShoppingBag, Zap, Star, Truck, RotateCcw, Shield, Check, Ruler, X, MapPin, Loader2, Flame, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { lookupPincode } from '../../utils/pincodeService';
 
 export default function ProductInfo({ product }) {
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || 'M');
@@ -12,6 +13,7 @@ export default function ProductInfo({ product }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [pincode, setPincode] = useState('');
+  const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeStatus, setPincodeStatus] = useState(null);
 
   const navigate = useNavigate();
@@ -30,24 +32,49 @@ export default function ProductInfo({ product }) {
     navigate('/cart?checkout=true');
   };
 
-  const handleCheckPincode = (e) => {
+  const handleCheckPincode = async (e) => {
     e.preventDefault();
-    if (/^\d{6}$/.test(pincode.trim())) {
-      setPincodeStatus({
-        valid: true,
-        message: 'Delivery available in 2-3 business days. Free shipping eligible.',
-      });
-    } else {
+    const clean = pincode.replace(/\D/g, '').trim();
+    if (clean.length !== 6) {
       setPincodeStatus({
         valid: false,
         message: 'Please enter a valid 6-digit Indian PIN code.',
       });
+      return;
+    }
+
+    setPincodeLoading(true);
+    setPincodeStatus(null);
+    try {
+      const result = await lookupPincode(clean);
+      if (result.success) {
+        setPincodeStatus({
+          valid: true,
+          message: `Delivery available to ${result.city}, ${result.state} in 2-3 business days. COD eligible.`,
+        });
+      } else {
+        setPincodeStatus({
+          valid: false,
+          message: result.error || 'Invalid PIN code. Please enter a valid Indian postal code.',
+        });
+      }
+    } catch {
+      setPincodeStatus({
+        valid: false,
+        message: 'Unable to check delivery for this PIN code right now.',
+      });
+    } finally {
+      setPincodeLoading(false);
     }
   };
 
   const discountPercent = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  const stockCount = typeof product.stock === 'number' ? product.stock : (parseInt(product.stock) || 0);
+  const isOutOfStock = stockCount <= 0;
+  const isLowStock = stockCount > 0 && stockCount <= 10;
 
   return (
     <div className="space-y-6 font-inter text-white">
@@ -112,6 +139,42 @@ export default function ProductInfo({ product }) {
       <p className="text-xs text-gray-300 -mt-3">
         Inclusive of all GST taxes & free shipping on orders above ₹999
       </p>
+
+      {/* Live Inventory & Urgency Indicator */}
+      {isLowStock ? (
+        <div className="p-3.5 bg-red-950/50 border border-red-500/50 rounded-2xl flex items-center justify-between gap-3 text-xs text-red-200 shadow-xl">
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-xl bg-brand-red text-white shrink-0 shadow-lg">
+              <Flame size={18} className="animate-pulse" />
+            </span>
+            <div>
+              <span className="font-black text-white uppercase text-[11px] block tracking-wide">
+                Hurry up! High Demand Piece
+              </span>
+              <span className="text-red-200 text-xs">
+                Only <strong className="text-white font-black underline decoration-brand-red text-sm">{stockCount} {stockCount === 1 ? 'item' : 'items'} left</strong> in stock. Order now before it runs out!
+              </span>
+            </div>
+          </div>
+          <span className="shrink-0 flex h-3 w-3 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          </span>
+        </div>
+      ) : isOutOfStock ? (
+        <div className="p-3.5 bg-[#181818] border border-red-500/30 rounded-2xl flex items-center gap-3 text-xs text-gray-300">
+          <AlertCircle size={18} className="text-red-400 shrink-0" />
+          <div>
+            <span className="font-bold text-white uppercase block text-xs">Currently Sold Out</span>
+            <span className="text-gray-400">This atelier piece is out of stock. Next curation batch coming soon.</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/30 border border-emerald-800/30 px-3 py-1.5 rounded-xl w-fit">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>In Stock ({stockCount} Units) • Express Atelier Dispatch</span>
+        </div>
+      )}
 
       {/* Short Description */}
       <div className="p-4 bg-[#141414] border border-white/15 rounded-2xl">
@@ -202,7 +265,8 @@ export default function ProductInfo({ product }) {
           <div className="flex items-center bg-[#141414] border border-white/20 rounded-xl overflow-hidden shrink-0">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="px-3.5 py-3 text-white hover:bg-white/10 transition-colors text-sm font-bold"
+              disabled={isOutOfStock}
+              className="px-3.5 py-3 text-white hover:bg-white/10 transition-colors text-sm font-bold disabled:opacity-40"
               aria-label="Decrease quantity"
             >
               -
@@ -211,8 +275,9 @@ export default function ProductInfo({ product }) {
               {quantity}
             </span>
             <button
-              onClick={() => setQuantity((q) => Math.min(10, q + 1))}
-              className="px-3.5 py-3 text-white hover:bg-white/10 transition-colors text-sm font-bold"
+              onClick={() => setQuantity((q) => Math.min(stockCount || 10, q + 1))}
+              disabled={isOutOfStock || quantity >= stockCount}
+              className="px-3.5 py-3 text-white hover:bg-white/10 transition-colors text-sm font-bold disabled:opacity-40"
               aria-label="Increase quantity"
             >
               +
@@ -222,13 +287,21 @@ export default function ProductInfo({ product }) {
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
+            disabled={isOutOfStock}
             className={`flex-1 py-3.5 px-4 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${
-              addedToCart
+              isOutOfStock
+                ? 'bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed'
+                : addedToCart
                 ? 'bg-green-500 text-white font-bold'
                 : 'bg-white text-black hover:bg-gray-200'
             }`}
           >
-            {addedToCart ? (
+            {isOutOfStock ? (
+              <>
+                <AlertCircle size={16} />
+                Out Of Stock
+              </>
+            ) : addedToCart ? (
               <>
                 <Check size={16} />
                 Added To Bag!
@@ -258,10 +331,24 @@ export default function ProductInfo({ product }) {
         {/* Buy Now (Direct Fast Checkout) */}
         <button
           onClick={handleBuyNow}
-          className="w-full btn-red py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 shadow-xl"
+          disabled={isOutOfStock}
+          className={`w-full py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 shadow-xl ${
+            isOutOfStock
+              ? 'bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed'
+              : 'btn-red'
+          }`}
         >
-          <Zap size={16} />
-          Instant Buy Now
+          {isOutOfStock ? (
+            <>
+              <AlertCircle size={16} />
+              Piece Sold Out
+            </>
+          ) : (
+            <>
+              <Zap size={16} />
+              Instant Buy Now
+            </>
+          )}
         </button>
       </div>
 
@@ -285,9 +372,11 @@ export default function ProductInfo({ product }) {
           />
           <button
             type="submit"
-            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold uppercase rounded-xl transition-colors shrink-0"
+            disabled={pincodeLoading}
+            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold uppercase rounded-xl transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1.5"
           >
-            Check
+            {pincodeLoading ? <Loader2 size={13} className="animate-spin" /> : null}
+            <span>{pincodeLoading ? 'Checking...' : 'Check'}</span>
           </button>
         </form>
         {pincodeStatus && (

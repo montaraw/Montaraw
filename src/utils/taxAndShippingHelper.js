@@ -3,43 +3,52 @@
  * Real apparel GST rules & Zone-wise shipping courier matrix.
  */
 
-// Delivery Zone Mapping from Store Base (North India / Uttar Pradesh)
+// Delivery Zone Mapping from Store Base (Courier tiers without state tags)
 export const STATE_ZONES = {
-  // Zone 1: Local / North Near (Intra-State & Neighboring)
-  'Uttar Pradesh': { zone: 'Zone 1 (Local/Intra-State)', standard: 49, express: 99, days: '2-3 Days', isHomeState: true },
-  'Delhi': { zone: 'Zone 1 (Delhi NCR)', standard: 49, express: 99, days: '2-3 Days', isHomeState: false },
-  'Haryana': { zone: 'Zone 1 (North Near)', standard: 49, express: 99, days: '2-3 Days', isHomeState: false },
-  'Uttarakhand': { zone: 'Zone 1 (North Near)', standard: 49, express: 99, days: '2-3 Days', isHomeState: false },
+  // Tier 1: Local / Near Hub
+  'Uttar Pradesh': { zone: 'Priority Express Delivery', standard: 49, express: 99, days: '2-3 Days', isHomeState: true },
+  'Delhi': { zone: 'Priority Express Delivery', standard: 49, express: 99, days: '2-3 Days', isHomeState: false },
+  'Haryana': { zone: 'Priority Express Delivery', standard: 49, express: 99, days: '2-3 Days', isHomeState: false },
+  'Uttarakhand': { zone: 'Priority Express Delivery', standard: 49, express: 99, days: '2-3 Days', isHomeState: false },
 
-  // Zone 2: North & Central Region
-  'Punjab': { zone: 'Zone 2 (North)', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
-  'Rajasthan': { zone: 'Zone 2 (North-West)', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
-  'Himachal Pradesh': { zone: 'Zone 2 (North Hills)', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
-  'Madhya Pradesh': { zone: 'Zone 2 (Central)', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
-  'Bihar': { zone: 'Zone 2 (East Central)', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
-  'Chandigarh': { zone: 'Zone 2 (North)', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
+  // Tier 2: Regional Hubs
+  'Punjab': { zone: 'Standard Priority Courier', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
+  'Rajasthan': { zone: 'Standard Priority Courier', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
+  'Himachal Pradesh': { zone: 'Standard Priority Courier', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
+  'Madhya Pradesh': { zone: 'Standard Priority Courier', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
+  'Bihar': { zone: 'Standard Priority Courier', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
+  'Chandigarh': { zone: 'Standard Priority Courier', standard: 69, express: 119, days: '3-4 Days', isHomeState: false },
 
-  // Zone 3: Major Metros, West & South Regions
-  'Maharashtra': { zone: 'Zone 3 (West / Mumbai Metro)', standard: 89, express: 139, days: '3-5 Days', isHomeState: false },
-  'Gujarat': { zone: 'Zone 3 (West)', standard: 89, express: 139, days: '3-5 Days', isHomeState: false },
-  'Karnataka': { zone: 'Zone 3 (South / Bengaluru Metro)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Telangana': { zone: 'Zone 3 (South / Hyderabad)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Tamil Nadu': { zone: 'Zone 3 (South / Chennai)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'West Bengal': { zone: 'Zone 3 (East / Kolkata)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Andhra Pradesh': { zone: 'Zone 3 (South)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Kerala': { zone: 'Zone 3 (South)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Goa': { zone: 'Zone 3 (West Coast)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Odisha': { zone: 'Zone 3 (East Coast)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Jharkhand': { zone: 'Zone 3 (East)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
-  'Chhattisgarh': { zone: 'Zone 3 (Central East)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  // Tier 3: Major Metros & National Coverage
+  'Maharashtra': { zone: 'Standard National Courier', standard: 89, express: 139, days: '3-5 Days', isHomeState: false },
+  'Gujarat': { zone: 'Standard National Courier', standard: 89, express: 139, days: '3-5 Days', isHomeState: false },
+  'Karnataka': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Telangana': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Tamil Nadu': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'West Bengal': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Andhra Pradesh': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Kerala': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Goa': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Odisha': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Jharkhand': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Chhattisgarh': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
 
-  // Zone 4: North-East, Special & Remote Territories
-  'Assam': { zone: 'Zone 4 (North East)', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
-  'Meghalaya': { zone: 'Zone 4 (North East)', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
-  'Tripura': { zone: 'Zone 4 (North East)', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
-  'Jammu and Kashmir': { zone: 'Zone 4 (Special Terrain)', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
-  'Ladakh': { zone: 'Zone 4 (Remote Hills)', standard: 139, express: 199, days: '6-8 Days', isHomeState: false },
-  'Other': { zone: 'Zone 3 (Standard Pan-India)', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  // Tier 4: Special & Extended Logistics
+  'Assam': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Meghalaya': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Tripura': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Manipur': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Mizoram': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Nagaland': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Arunachal Pradesh': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Sikkim': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Jammu and Kashmir': { zone: 'Extended Logistics Delivery', standard: 119, express: 169, days: '5-7 Days', isHomeState: false },
+  'Ladakh': { zone: 'Extended Logistics Delivery', standard: 139, express: 199, days: '6-8 Days', isHomeState: false },
+  'Puducherry': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Dadra and Nagar Haveli and Daman and Diu': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
+  'Andaman and Nicobar Islands': { zone: 'Extended Logistics Delivery', standard: 139, express: 199, days: '6-9 Days', isHomeState: false },
+  'Lakshadweep': { zone: 'Extended Logistics Delivery', standard: 139, express: 199, days: '6-9 Days', isHomeState: false },
+  'Other': { zone: 'Standard National Courier', standard: 89, express: 139, days: '4-5 Days', isHomeState: false },
 };
 
 /**

@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, X, Package, CheckCircle2 } from 'lucide-react';
+import { Search, Eye, X, Package, CheckCircle2, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
 import { useOrders } from '../../context/OrderContext';
 import { AdminTableSkeleton } from '../ui/loading/AdminSkeletons';
 
 export default function OrderManager() {
-  const { orders, updateOrderStatus, fetchOrders, loading } = useOrders();
+  const { orders, updateOrderStatus, refundOrder, fetchOrders, loading } = useOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingInput, setTrackingInput] = useState('');
   const [trackingSaved, setTrackingSaved] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [refundSuccessMsg, setRefundSuccessMsg] = useState('');
 
   useEffect(() => {
     fetchOrders?.();
@@ -21,10 +25,36 @@ export default function OrderManager() {
     setSelectedOrder(order);
     setTrackingInput(order.trackingNumber || '');
     setTrackingSaved(false);
+    setRefundSuccessMsg('');
+  };
+
+  const handleInitiateRefund = async () => {
+    if (!selectedOrder) return;
+    setRefundLoading(true);
+    try {
+      const res = await refundOrder(selectedOrder.id, refundReason);
+      if (res?.success) {
+        setSelectedOrder((prev) => ({
+          ...prev,
+          paymentStatus: 'Refunded',
+          status: 'Cancelled',
+        }));
+        setRefundSuccessMsg(`Refund of ₹${selectedOrder.total.toLocaleString()} processed successfully!`);
+        setRefundModalOpen(false);
+        setRefundReason('');
+      }
+    } catch {
+      // ignore
+    } finally {
+      setRefundLoading(false);
+    }
   };
 
   const filteredOrders = orders.filter((order) => {
-    const matchesStatus = statusFilter === 'all' || order.status?.toLowerCase() === statusFilter.toLowerCase();
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'refunded' && order.paymentStatus === 'Refunded') ||
+      order.status?.toLowerCase() === statusFilter.toLowerCase();
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
@@ -35,7 +65,10 @@ export default function OrderManager() {
     return matchesStatus && matchesSearch;
   });
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, paymentStatus) => {
+    if (paymentStatus === 'Refunded') {
+      return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+    }
     switch (status?.toLowerCase()) {
       case 'delivered':
         return 'bg-green-500/20 text-green-300 border-green-500/40';
@@ -129,7 +162,11 @@ export default function OrderManager() {
                     <td className="py-4 px-5">
                       <p className="font-bold text-white text-sm">{order.customer?.fullName || order.customerName || 'Customer'}</p>
                       <p className="text-gray-300 text-xs mt-0.5">{order.customer?.phone || order.customerPhone}</p>
-                      <p className="text-gray-400 text-[11px]">{order.customer?.city || order.city || 'Mumbai'}, {order.customer?.state || order.state || 'Maharashtra'}</p>
+                      <p className="text-gray-400 text-[11px]">
+                        {[order.customer?.city || order.city, order.customer?.state || order.state]
+                          .filter(Boolean)
+                          .join(', ') || 'India'}
+                      </p>
                     </td>
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-2">
@@ -142,7 +179,20 @@ export default function OrderManager() {
                     </td>
                     <td className="py-4 px-5">
                       <span className="font-black text-white text-sm block">₹{order.total?.toLocaleString()}</span>
-                      <span className="text-[11px] text-gray-400 font-medium">{order.paymentMethod}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                          order.paymentStatus === 'Paid'
+                            ? 'bg-emerald-950/70 text-emerald-400 border border-emerald-700/50'
+                            : order.paymentStatus === 'Refunded'
+                            ? 'bg-purple-950/70 text-purple-400 border border-purple-700/50'
+                            : order.paymentStatus === 'Cancelled'
+                            ? 'bg-red-950/70 text-red-400 border border-red-700/50'
+                            : 'bg-amber-950/70 text-amber-300 border border-amber-700/50'
+                        }`}>
+                          {order.paymentStatus === 'Paid' ? 'PAID' : order.paymentStatus === 'Refunded' ? 'REFUNDED' : order.paymentStatus === 'Cancelled' ? 'CANCELLED' : 'COD'}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-medium truncate max-w-[110px]">{order.paymentMethod}</span>
+                      </div>
                     </td>
                     <td className="py-4 px-5">
                       <select
@@ -197,13 +247,29 @@ export default function OrderManager() {
 
                 <div>
                   <p className="font-bold text-white text-sm">{order.customer?.fullName || order.customerName || 'Customer'}</p>
-                  <p className="text-gray-300 text-xs">{(order.customer?.phone || order.customerPhone)} • {(order.customer?.city || order.city || 'Mumbai')}</p>
+                  <p className="text-gray-300 text-xs">
+                    {(order.customer?.phone || order.customerPhone)}
+                    {(order.customer?.city || order.city) ? ` • ${order.customer?.city || order.city}` : ''}
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-white/10 text-xs">
                   <div>
                     <span className="text-gray-400 block text-[10px] uppercase">Grand Total:</span>
-                    <span className="font-black text-white text-sm">₹{order.total?.toLocaleString()}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-white text-sm">₹{order.total?.toLocaleString()}</span>
+                      <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                        order.paymentStatus === 'Paid'
+                          ? 'bg-emerald-950/70 text-emerald-400 border border-emerald-700/50'
+                          : order.paymentStatus === 'Refunded'
+                          ? 'bg-purple-950/70 text-purple-400 border border-purple-700/50'
+                          : order.paymentStatus === 'Cancelled'
+                          ? 'bg-red-950/70 text-red-400 border border-red-700/50'
+                          : 'bg-amber-950/70 text-amber-300 border border-amber-700/50'
+                      }`}>
+                        {order.paymentStatus === 'Paid' ? 'PAID' : order.paymentStatus === 'Refunded' ? 'REFUNDED' : order.paymentStatus === 'Cancelled' ? 'CANCELLED' : 'COD'}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => handleOpenSlip(order)}
@@ -325,7 +391,14 @@ export default function OrderManager() {
                 </span>
                 <p className="text-white font-bold text-sm">{selectedOrder.customer?.fullName || selectedOrder.customerName || 'Customer'}</p>
                 <p className="text-gray-200">{selectedOrder.customer?.address || selectedOrder.address}</p>
-                <p className="text-gray-200">{selectedOrder.customer?.city || selectedOrder.city || 'Mumbai'}, {selectedOrder.customer?.state || selectedOrder.state || 'Maharashtra'} - {selectedOrder.customer?.pincode || selectedOrder.pincode}</p>
+                <p className="text-gray-200">
+                  {[selectedOrder.customer?.city || selectedOrder.city, selectedOrder.customer?.state || selectedOrder.state]
+                    .filter(Boolean)
+                    .join(', ')}
+                  {(selectedOrder.customer?.pincode || selectedOrder.pincode)
+                    ? ` - ${selectedOrder.customer?.pincode || selectedOrder.pincode}`
+                    : ''}
+                </p>
                 <p className="text-gray-300 pt-1">Phone: <strong className="text-white">{selectedOrder.customer?.phone || selectedOrder.customerPhone}</strong></p>
                 <p className="text-gray-300">Email: <strong className="text-white">{selectedOrder.customer?.email || selectedOrder.customerEmail}</strong></p>
               </div>
@@ -365,11 +438,57 @@ export default function OrderManager() {
                   <span>Shipping:</span>
                   <span className="text-white font-bold">{selectedOrder.shipping === 0 ? 'FREE' : `₹${selectedOrder.shipping}`}</span>
                 </div>
+                <div className="flex justify-between items-center text-gray-200">
+                  <span>Payment Method:</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                        selectedOrder.paymentStatus === 'Paid'
+                          ? 'bg-emerald-950/70 text-emerald-400 border border-emerald-700/50'
+                          : selectedOrder.paymentStatus === 'Refunded'
+                          ? 'bg-purple-950/70 text-purple-400 border border-purple-700/50'
+                          : selectedOrder.paymentStatus === 'Cancelled'
+                          ? 'bg-red-950/70 text-red-400 border border-red-700/50'
+                          : 'bg-amber-950/70 text-amber-300 border border-amber-700/50'
+                      }`}>
+                        {selectedOrder.paymentStatus === 'Paid' ? 'PAYMENT COMPLETED (VERIFIED)' : selectedOrder.paymentStatus === 'Refunded' ? 'REFUNDED' : selectedOrder.paymentStatus === 'Cancelled' ? 'CANCELLED' : 'COD (PENDING)'}
+                      </span>
+                      <span className="text-white font-medium">{selectedOrder.paymentMethod}</span>
+                    </div>
+                    {selectedOrder.razorpayPaymentId && (
+                      <span className="text-emerald-400/90 font-mono text-[10px] bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">
+                        Razorpay ID: {selectedOrder.razorpayPaymentId}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div className="pt-2 border-t border-white/15 flex justify-between items-center text-sm">
                   <span className="font-bold text-white uppercase">Grand Total:</span>
                   <span className="font-black text-lg text-white">₹{selectedOrder.total?.toLocaleString()}</span>
                 </div>
               </div>
+
+              {/* Refund Notice / Action */}
+              {selectedOrder.paymentStatus === 'Refunded' ? (
+                <div className="p-3.5 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center gap-2.5 text-xs text-purple-300">
+                  <RotateCcw size={16} className="shrink-0 text-purple-400" />
+                  <div>
+                    <span className="font-bold block uppercase text-[10px]">Refund Completed</span>
+                    <span>₹{selectedOrder.total?.toLocaleString()} refunded & garments restocked into inventory.</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setRefundModalOpen(true)}
+                    className="w-full py-3 rounded-xl border border-red-500/40 hover:border-red-500 bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-bold uppercase flex items-center justify-center gap-2 transition-all shadow-md"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Issue Full Refund (₹{selectedOrder.total?.toLocaleString()})</span>
+                  </button>
+                </div>
+              )}
 
               {/* Close Button */}
               <button
@@ -378,6 +497,81 @@ export default function OrderManager() {
               >
                 Close Slip
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Admin Refund Confirmation Modal */}
+      <AnimatePresence>
+        {refundModalOpen && selectedOrder && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md font-inter">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#121212] border border-red-500/40 rounded-3xl max-w-md w-full p-6 text-white shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3 text-red-400 border-b border-white/10 pb-3">
+                <AlertTriangle size={24} />
+                <div>
+                  <h3 className="text-sm font-black uppercase text-white">Confirm Order Refund</h3>
+                  <p className="text-[11px] text-gray-300">Order ID: <strong className="text-white font-mono">{selectedOrder.id}</strong></p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#181818] border border-white/10 rounded-xl text-xs space-y-1">
+                <div className="flex justify-between text-gray-300">
+                  <span>Customer:</span>
+                  <span className="font-bold text-white">{selectedOrder.customer?.fullName || selectedOrder.customerName}</span>
+                </div>
+                <div className="flex justify-between text-gray-300">
+                  <span>Refund Amount:</span>
+                  <span className="font-black text-red-400 text-sm">₹{selectedOrder.total?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-gray-300">
+                  <span>Payment Gateway:</span>
+                  <span className="font-medium text-white">{selectedOrder.paymentMethod}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-300 uppercase mb-1">
+                  Reason for Refund (Optional Note)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Customer cancellation / damaged size return"
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  className="w-full bg-[#181818] border border-white/20 text-white placeholder-gray-500 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-red-500 font-medium"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRefundModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/20 text-gray-300 hover:text-white text-xs font-bold uppercase transition-all bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleInitiateRefund}
+                  disabled={refundLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase flex items-center justify-center gap-2 transition-all shadow-lg font-bold"
+                >
+                  {refundLoading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <span>Confirm & Refund</span>
+                  )}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
